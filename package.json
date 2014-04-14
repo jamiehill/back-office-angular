@@ -1,0 +1,26 @@
+{
+  "name": "back-office",
+  "version": "0.0.0",
+  "description": "Ats Back Office",
+  "main": "src/app/app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "clean": "rm -rf node_modules && npm cache clean"
+  },
+  "author": "James Hill",
+  "license": "MIT",
+  "devDependencies": {
+    "angular": "^1.2.15",
+    "browserify": "^3.41.0",
+    "grunt": "^0.4.4",
+    "grunt-browserify": "^2.0.7",
+    "grunt-browserify2": "^0.1.8",
+    "grunt-contrib-clean": "^0.5.0",
+    "grunt-contrib-concat": "^0.4.0",
+    "grunt-contrib-copy": "^0.5.0",
+    "grunt-contrib-watch": "^0.6.1",
+    "grunt-html2js": "^0.2.4",
+    "partialify": "^3.1.1",
+    "watchify": "^0.6.4"
+  }
+}
