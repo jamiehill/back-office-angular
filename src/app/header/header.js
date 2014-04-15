@@ -1,29 +1,27 @@
-'strict'
+'use strict';
 
-var angular = require('angular');
+module.exports = angular.module('app.header', [])
 
-angular.module('app.header', [])
-
-    // Main header view
+    // Main header directive
     .directive('headerView', function() {
         return {
             restrict: 'E',
-            templateUrl: require('./header.tpl.html'),
+            template: require('./header.tpl.html'),
             controller: 'HeaderCtrl'
         };
     })
 
-    // Main header controller
-    .controller('HeaderCtrl', ['$scope', '$location', 'security', function ($scope, $location, security) {
+    // Header controller
+    .controller('HeaderCtrl', ['$scope', '$location', function ($scope, $location) {
 
         $scope.location = $location;
 
-        $scope.isAuthenticated = security.isAuthenticated;
-        $scope.isAdmin = security.isAdmin;
-
-        $scope.home = function () {
-            var path = security.isAuthenticated() ?
-                '/dashboard' : 'projects'
-            $location.path(path);
-        };
+//        $scope.isAuthenticated = security.isAuthenticated;
+//        $scope.isAdmin = security.isAdmin;
+//
+//        $scope.home = function () {
+//            var path = security.isAuthenticated() ?
+//                '/dashboard' : 'projects'
+//            $location.path(path);
+//        };
     }]);

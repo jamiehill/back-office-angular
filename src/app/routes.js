@@ -1,7 +1,13 @@
-var fs = require('fs');
+'strict'
+
 module.exports = function($routeProvider) {
-    $routeProvider.otherwise('/'), {
+    $routeProvider
+
+    // Send everything to main
+    .when('/', {
         controller: require('./main/main.js'),
         template: require('./main/main.tpl.html')
-    }
-};
+    })
+
+    .otherwise('/')
+}

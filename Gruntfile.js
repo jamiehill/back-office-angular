@@ -1,61 +1,55 @@
 module.exports = function (grunt) {
     grunt.initConfig({
-        src: {
-            js: ['src/**/*.js'],
-            html: ['src/index.html'],
-            tpl: {
-                app: ['src/app/**/*.tpl.html'],
-                common: ['src/common/**/*.tpl.html']
+        pkg: grunt.file.readJSON('package.json'),
+        clean: ['./public/*'],
+        browserify: {
+            app: {
+                src: ['./src/app/app.js'],
+                dest: './public/app.js',
+                options: {
+                    transform: ['debowerify', 'partialify']
+                }
             }
         },
-        dirs: {
-            src: './src',
-            app: '<%= dirs.src %>/app',
-            common: '<%= dirs.src %>/common',
-            assets: '<%= dirs.src %>/assets',
-            output: './dist'
-        },
-        watchify: {
-            debug: {
-                entry: '<%= dirs.app %>/app.js',
-                compile: '<%= dirs.output %>/app.js',
-                debug: true,
-                verbose: true
-            },
-            compile: {
-                entry: '<%= dirs.app %>/app.js',
-                compile: '<%= dirs.output %>/app.js'
-            },
-            watch: {
-                files: [ "<%= dirs.app %>/**/*.js", "<%= dirs.common %>/**/*.js"],
-                tasks: [ 'compile' ]
-            }
-        },
-        clean: ['<%= dirs.output %>/*'],
         copy: {
             assets: {
-                files: [{ dest: '<%= dirs.output %>', src : '**', expand: true, cwd: 'src/assets/' }]
+                files: [{ dest: './public', src : '**', expand: true, cwd: './src/assets/' }]
             }
         },
         concat:{
             index: {
-                src: ['src/index.html'],
-                dest: '<%= dirs.output %>/index.html',
+                src: ['./src/index.html'],
+                dest: './public/index.html',
                 options: {
                     process: true
+                }
+            }
+        },
+        watch: {
+            src: {
+                files: ['./src/app/**/*',
+                        './src/common/**/*',
+                        './src/index.html'],
+                tasks: ['default'],
+                options: {
+                    livereload: true
                 }
             }
         }
     });
 
-    grunt.loadNpmTasks('watchify');
+    grunt.loadNpmTasks('grunt-browserify');
     grunt.loadNpmTasks('grunt-contrib-clean');
     grunt.loadNpmTasks('grunt-contrib-copy');
     grunt.loadNpmTasks('grunt-contrib-concat');
+    grunt.loadNpmTasks('grunt-contrib-watch');
 
-    grunt.registerTask('default', ['clean','watchify:debug','concat:index','copy']);
-    grunt.registerTask('compile', ['clean','watchify:compile','concat:index','copy']);
-    grunt.registerTask('watch', 'browserify2:compile');
+    grunt.registerTask('default', ['compile']);
+    grunt.registerTask('compile', ['clean','browserify','concat:index','copy']);
+
+    grunt.event.on('watch', function(action, filepath, target) {
+        grunt.log.writeln(target + ': ' + filepath + ' has ' + action);
+    });
 
 
 };

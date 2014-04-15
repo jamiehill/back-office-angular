@@ -1,12 +1,12 @@
 'strict'
 
-angular.module('app.main', [])
+module.exports = angular.module('app.main', [])
 
     // Main view
     .directive('mainView', function() {
         return {
             restrict: 'E',
-            templateUrl: require('./main.tpl.html'),
+            template: require('./main.tpl.html'),
             controller: 'MainCtrl'
         };
     })

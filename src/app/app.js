@@ -1,13 +1,15 @@
 'strict'
 
 require('angular')
-require('./header/header.js')
-require('./footer/footer.js')
-require('./main/main.js')
+require('angular-route')
+require('angular-bootstrap')
 
-angular.module('app', [ 'ngRoute',
-    'app.header',
-    'app.footer',
-    'app.main'])
+angular.module('app', [ 'ngRoute', 'ui.bootstrap',
 
-angular.config(require('./routes'));
+    // Dependencies
+    require('./header/header.js').name,
+    require('./footer/footer.js').name,
+    require('./main/main.js').name])
+
+    // Config
+//    .config(require('./routes'));

@@ -1,12 +1,12 @@
 'strict'
 
-angular.module('app.footer', [])
+module.exports = angular.module('app.footer', [])
 
     // Main footer view
     .directive('footerView', function() {
         return {
             restrict: 'E',
-            templateUrl: require('./footer.tpl.html'),
+            template: require('./footer.tpl.html'),
             controller: 'HeaderCtrl'
         };
     })
