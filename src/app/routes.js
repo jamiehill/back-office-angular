@@ -1,4 +1,4 @@
-'strict'
+'strict';
 
 module.exports = function($routeProvider) {
     $routeProvider
@@ -9,5 +9,5 @@ module.exports = function($routeProvider) {
         template: require('./main/main.tpl.html')
     })
 
-    .otherwise('/')
-}
+    .otherwise('/');
+};

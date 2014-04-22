@@ -7,7 +7,7 @@ module.exports = angular.module('app.footer', [])
         return {
             restrict: 'E',
             template: require('./footer.tpl.html'),
-            controller: 'HeaderCtrl'
+            controller: 'FooterCtrl'
         };
     })
 

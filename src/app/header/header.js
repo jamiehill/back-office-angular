@@ -12,9 +12,9 @@ module.exports = angular.module('app.header', [])
     })
 
     // Header controller
-    .controller('HeaderCtrl', ['$scope', '$location', function ($scope, $location) {
+    .controller('HeaderCtrl', ['$scope', function ($scope) {
 
-        $scope.location = $location;
+//        $scope.location = $location;
 
 //        $scope.isAuthenticated = security.isAuthenticated;
 //        $scope.isAdmin = security.isAdmin;

@@ -1,10 +1,12 @@
-'strict'
+'strict';
 
-require('angular')
-require('angular-route')
-require('angular-bootstrap')
+require('jquery');
+require('angular');
+require('angular-route');
+//require('kendo-ui-core');
+//require('angular-kendo-ui');
 
-angular.module('app', [ 'ngRoute', 'ui.bootstrap',
+angular.module('app', [ "ngRoute",
 
     // Dependencies
     require('./header/header.js').name,
@@ -12,4 +14,4 @@ angular.module('app', [ 'ngRoute', 'ui.bootstrap',
     require('./main/main.js').name])
 
     // Config
-//    .config(require('./routes'));
+    .config(require('./routes'));
