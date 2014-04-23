@@ -61,6 +61,26 @@
     "tiny-lr": "0.0.5",
     "url": "^0.10.1",
     "vinyl-source-stream": "^0.1.1",
-    "watchify": "^0.6.4"
+    "watchify": "^0.6.4",
+    "gulp-plumber": "^0.6.1",
+    "gulp-browserify": "^0.5.0",
+    "gulp-csso": "^0.2.8",
+    "gulp-template": "^0.1.1",
+    "jshint-stylish": "^0.1.5"
+  },
+  "browserify": {
+    "transform": [
+      "debowerify",
+      "partialify",
+      "deamdify"
+    ]
+  },
+  "browserify-shim": {
+    "plugin": {
+      "exports": "plugin",
+      "depends": [
+        "jquery:$"
+      ]
+    }
   }
 }

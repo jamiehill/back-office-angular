@@ -1,7 +1,29 @@
+/*
+
+ Gulpfile for building Back-Office application.
+
+ The application will build in two modes:  development or production.  In order
+ to specify 'production', the gulp cli property type should be set to 'production':
+
+        gulp --type production
+
+ Any other value, or indeed none specified at all, will be assumed to be 'development'.
+
+ Assumptions specific to the app this was pulled from:
+
+     1. Things there are only one of:
+
+     - Single JS entry point in ./src/app/app.js
+     - Single CSS file in ./src/styles/style.css (named whatever)
+     - Single HTML file in ./src/index.html (used as template)
+
+     2. Using Bootstrap, with glpyhicon fonts in ./vendor/fonts
+
+ */
+
+
 var gulp = require("gulp");
-var browserify = require("browserify");
-var source = require("vinyl-source-stream");
-var streamify = require('gulp-streamify');
+var browserify = require("gulp-browserify");
 var jshint = require('gulp-jshint');
 var uglify = require('gulp-uglify');
 var clean = require('gulp-clean');
@@ -11,20 +33,18 @@ var connect = require('gulp-connect');
 var concat = require('gulp-concat');
 var open = require('gulp-open');
 var sequence = require('gulp-run-sequence');
-var debug = require('gulp-debug');
-var server = require('ecstatic');
+var ecstatic = require('ecstatic');
 var url = require('url');
-var path = require('path');
 var http = require('http');
 var bower = require('gulp-bower-files');
-var gulpFilter = require('gulp-filter')
-var livereload = require('gulp-livereload');
-var BatchStream = require('batch-stream2');
-var cssmin = require('gulp-minify-css');
+var filter = require('gulp-filter')
 var rename = require('gulp-rename');
-var stylus = require('gulp-stylus');
-var gif = require('gulp-if');
 var tap = require('gulp-tap');
+var plumber = require('gulp-plumber');
+var csso = require('gulp-csso');
+var gif = require('gulp-if');
+var template = require('gulp-template');
+var stylish = require('jshint-stylish');
 
 
 /*
@@ -32,47 +52,61 @@ var tap = require('gulp-tap');
  */
 
 
-var PROD = (gutil.env.type !== 'production');
-var PORT = 8000;
-var LIVERELOAD_PORT = 35729;
+var PROD = (gutil.env.type === 'production');
+var bower_comps = [];
 
 var src = {
     css: ['./src/styles/*.css'],
     js: ['./src/app/**/*.js'],
     assets: ['./src/assets/*'],
     common: ['./src/common/**/*.js'],
-    bower: ['bower.json', '.bowerrc']
+    bower: ['bower.json', '.bowerrc'],
+    gulp: ['gulpfile.js.json'],
+    index: './src/index.html'
 }
 
 var publishdir = 'build'
 var dist = {
     all: [publishdir + '/**/*'],
     css: publishdir + '/static/',
+    assets: publishdir + '/static/',
     js: publishdir + '/static/',
-    vendor: publishdir + '/static/'
+    vendor: publishdir + '/static/',
+    index: publishdir + 'index.html'
 }
-
 
 
 /*
  Task runners ----------------------------------------------
  */
 
-gulp.task('default', function() {
-    sequence('clean', 'bower', 'build', 'livereload');
-})
-gulp.task('build', function() {
-    sequence('css', 'js', 'assets');
-})
 
-gulp.task('css', [ 'buildCss' ]);
-gulp.task('js', [ 'buildJs' ]);
-gulp.task('assets', [ 'buildAssets' ]);
+gulp.task('default', ['watch']);
+
+gulp.task('clean', ['env'], function (cb) {
+    sequence('clean', cb);
+});
+
+gulp.task('build', ['clean'], function(cb) {
+    sequence('clean', 'dist-vendor', 'dist-js', 'dist-css', 'dist-assets', 'dist-html', cb);
+})
 
 
 /*
- Internal task definitions -----------------------------------
+ Build tasks -----------------------------------
  */
+
+
+/**
+ * Print out environment details
+ */
+gulp.task('env', function(next) {
+    var type = gutil.env.type
+      , env = type === undefined ? "dev" : type
+      , message = gutil.colors.magenta(env);
+    gutil.log('Environment: ' + message);
+    next();
+});
 
 
 /**
@@ -80,8 +114,8 @@ gulp.task('assets', [ 'buildAssets' ]);
  */
 gulp.task('clean', function() {
     return gulp.src([publishdir], {read: false})
+        .pipe(plumber())
         .pipe(clean())
-        .on('error', gutil.log)
 });
 
 
@@ -92,204 +126,239 @@ gulp.task('clean', function() {
  * and *.css to `vendor.css`
  * rename fonts to `fonts/*.*`
  */
-var bcomps;
-gulp.task('bower', function() {
+gulp.task('dist-vendor', function() {
 
-    var jsFilter = gulpFilter('**/*.js'),
-        cssFilter = gulpFilter('**/*.css');
+    var jsFilter = filter('**/*.js'),
+        cssFilter = filter('**/*.css'),
+        stream = bower();
 
-    var prod = true;
-    var min = (prod) ? ".min." : ".";
+    bower_comps = [];
+    stream.pipe(plumber())
 
-    bcomps = []
-    return bower()
-
-        // Bowerify vendor js
+        // Javascript
         .pipe(jsFilter)
-        .pipe(tap(function(file, t) {
-            bcomps.push(file.path);
-            gutil.log('Js: ' + gutil.colors.magenta(file.path));
-        }))
-        .pipe(concat('vendor'+min+'js'))
+        .pipe(tap(mapVendors))
+        .pipe(concat('vendor.js'))
         .pipe(gulp.dest(dist.js))
-
-        // Clear filters
         .pipe(jsFilter.restore())
 
-        // Bowerify vendor styles
+        // Styles
         .pipe(cssFilter)
-        .pipe(tap(function(file, t) {
-            gutil.log('Css: ' + gutil.colors.magenta(file.path));
-        }))
-        .pipe(concat('vendor'+min+'css'))
+        .pipe(concat('vendor.css'))
         .pipe(gulp.dest(dist.css))
-
-        // Clear filters
         .pipe(cssFilter.restore())
 
-        // Bowerify vendor fonts
+        // Fonts
         .pipe(rename(function(path) {
             if (path.dirname.indexOf('fonts')) {
                 path.dirname = '/fonts'
             }
         }))
         .pipe(gulp.dest(dist.vendor))
-})
 
-
-/**
- * Concat all local styles into app.css
- */
-gulp.task('buildCss', function() {
-    return gulp.src(src.css)
-        .pipe(concat('app.css'))
-        .pipe(gulp.dest(dist.css))
-        .on('error', gutil.log)
+    return stream;
 })
 
 
 /**
  *  Browserify using vinyl-source-stream ~
  */
-gulp.task('buildJs', function() {
+gulp.task('dist-js', ['lint'], function() {
+    var stream = gulp.src('./src/app/app.js', {read:false})
 
-    var bundler = browserify('./src/app/app.js');
-//    var uglifier = uglify({outSourceMap: false});
-//    var compress = (false) ? uglifier : gutil.noop();
+        // Browserify app
+        .pipe(plumber())
+        .pipe(browserify(opts))
 
-    // Externalise vendor js
-//    bundler.require(dist.js+"/vendor.js", { external:true });
-
-//    bcomps.forEach(function (lib) {
-//        bundler.require(lib);
-//        gutil.log('Externalised: ' + gutil.colors.green(lib));
-//    });
-
-    // Add transforms
-//    bundler.transform("debowerify");
-    bundler.transform("partialify");
-    bundler.transform("deamdify");
-
-    // Bundle
-    bundler.bundle({debug:true})
-        .pipe(source("app.js"))
-        .pipe(gulp.dest(dist.js))
-
-
-
-
-
-
-    var bundler = browserify('./src/app/app.js');
-    var uglifier = uglify({outSourceMap: false});
-    var compress = (PROD) ? uglifier : gutil.noop();
-
-    // Add transforms
-    bundler.transform("debowerify");
-    bundler.transform("partialify");
-
-    // Requires
-//    bundler.require("./bower_components/angular/angular.js", {expose:"angular"});
-
-    gutil.log('BComps.length: ' + gutil.colors.white(bcomps.length));
-    bcomps.forEach(function (lib) {
-        bundler.require(lib);
-        gutil.log('Externalised: ' + gutil.colors.green(lib));
-    });
-
-    // Bundle
-    bundler.bundle({debug:true})
-        .pipe(source("app.js"))
-        .pipe(streamify(compress))
-        .pipe(gulp.dest("./build/static"))
+        // Listen for prebundle and errors
+        .on('prebundle', externalise)
         .on('error', gutil.log)
+        .pipe(concat('app.js'))
+
+        // If Prod, rename and uglify
+        .pipe(gif(PROD, rename('app.min.js')))
+        .pipe(gif(PROD, uglify({outSourceMap: !PROD})))
+
+        // Output stream
+        .pipe(gulp.dest('./build/static'))
+        .pipe(filesize());
+
+    return stream;
+})
+
+
+/**
+ * Concat all local styles into app.css
+ */
+gulp.task('dist-css', function() {
+    var stream = gulp.src(src.css)
+        .pipe(concat('app.css'))
+        .pipe(gif(PROD, csso()))
+        .pipe(gif(PROD, rename({ext: '.min.css'})))
+        .pipe(gulp.dest(dist.css))
         .pipe(filesize())
+    return stream;
 })
 
 
 /**
- * Output all required assets
+ * Output image assets to the dist directory
  */
-gulp.task('buildAssets', function() {
+gulp.task('dist-assets', function() {
+    return gulp.src(src.assets)
+        .pipe(gulp.dest(dist.assets));
+})
 
-    // Index.html
-    gulp.src('./src/index.html', { base: './src'})
-        .pipe(gulp.dest(publishdir));
 
-    // Assets
-    gulp.src(src.assets, { base: './src/assets' })
+
+/**
+ * Output image assets to the dist directory
+ */
+gulp.task('dist-html', function() {
+    var opts = {
+        extension: (PROD) ? ".min." : ".",
+        title: "ABCts Back-Office"
+    }
+    return gulp.src(src.index)
+        .pipe(template(opts))
         .pipe(gulp.dest(publishdir));
 })
 
 
-/**
- *
+/*
+ Utility tasks -----------------------------------
  */
-gulp.task('lint', function() {
-    return gulp.src('./src/app/*.js')
-        .pipe(jshint())
-        .pipe(jshint.reporter('default'))
-        .on('error', gutil.log)
-});
 
 
 /**
  * Watch all application files for changes
  */
-gulp.task('watch', function() {
+gulp.task('watch', ['server'], function() {
 
-    // Watch for changes in this file
-    gulp.watch(src.bower, ['bower']);
+    var server = require('gulp-livereload')();
+    gulp.watch(dist.all).on('change' , function(file) {
+        server.changed(file.path);
+    })
+
+    // Watch for changes in bower/gulp
+    gulp.watch(['./bower.json', './gulpfile.js'], ['build']);
 
     // Watch main js/css for changes
-    gulp.watch({ glob: src.css, name: 'app.css' }, 'buildCss');
-    gulp.watch({ glob: src.js, name: 'app.js' }, 'buildJs');
+    gulp.watch(['./src/styles/*'], 'dist-css');
+    gulp.watch(['./src/app/*', './src/common/*'], 'dist-js');
 
     // Watch asset sources
-    gulp.watch(['./src/index.html'], ['buildAssets']);
-    gulp.watch(['./src/app/**/*.html'], ['buildAssets']);
-    gulp.watch(['./src/assets/*'], ['buildAssets']);
-
-    // Watch output - livereload
-    gulp.watch(dist.all, function (file) {
-        var relPath = publishdir+'\\' + path.relative('./'+publishdir, file.path);
-        gutil.log('File changed: ' + gutil.colors.magenta(relPath));
-        livereload.changed(file.path);
-    });
+    gulp.watch(['./src/index.html'], ['dist-html']);
+    gulp.watch(['./src/app/**/*.html'], ['dist-js']);
+    gulp.watch(['./src/assets/*'], ['build-assets']);
 })
 
 
 /**
  *
  */
-gulp.task('livereload', ['bower', 'css', 'js', 'assets', 'watch'], function() {
-    var server = livereload()
-    var batch = new BatchStream({ timeout: 100 })
+gulp.task('server', ['build'], function(next) {
 
-    gulp.watch(dist.all).on('change', function change(file) {
-        // clear directories
-        var urlpath = file.path.replace(__dirname + '/' + publishdir, '')
-        // also clear the tailing index.html
-        urlpath = urlpath.replace('/index.html', '/')
-        batch.write(urlpath)
-    })
-    batch.on('data', function(files) {
-        server.changed(files.join(','))
-    })
-})
+    var connect = require('connect')
+      , http = require('http');
+
+    var app = connect()
+        .use(connect.favicon())
+        .use(connect.static('./build'))
+        .use(function(req, res){
+            res.end('Hello from Connect!\n');
+        })
+
+    http.createServer(app).listen(3000);
+    next();
+});
 
 
 /**
- * Compress output files
+ * JSHint the javascript
  */
-gulp.task('compress-css', ['css'], function() {
-    return gulp.src(dist.css)
-        .pipe(cssmin())
-        .pipe(gulp.dest(dist.css))
-})
-gulp.task('compress-js', ['js'], function() {
-    return gulp.src(dist.js)
-        .pipe(uglify())
-        .pipe(gulp.dest(dist.js))
-})
-gulp.task('compress', ['compress-css', 'compress-js'])
+gulp.task('lint', function() {
+    return gulp.src('./src/app/*.js')
+        .pipe(jshint())
+        .pipe(jshint.reporter(stylish))
+        .pipe(jshint.reporter('fail'))
+});
+
+
+/*
+ Private ------------------------------------------------
+ */
+
+
+/**
+ *
+ * @param file
+ * @param t
+ */
+var mapVendors = function(file, t) {
+    gutil.log('Js: ' + gutil.colors.magenta(file.path));
+    bower_comps.push(file);
+}
+
+
+/**
+ * Map externalised libraries
+ * @param bundler
+ */
+var externalise = function(bundler) {
+
+    startBlock('Externalise');
+    gutil.log('Bower Components: ' + gutil.colors.red(bower_comps.length));
+
+    bower_comps.forEach(function (file) {
+        bundler.require(file.path, { external:true });
+//        bundler.external(file.path);
+        gutil.log('Component: ' + gutil.colors.green(file.path));
+    });
+    endBlock();
+    return bundler;
+}
+
+
+
+/**
+ * Utility to determin if the request is a static file, rather than a framework routing request
+ * @param req
+ * @returns {boolean}
+ */
+var parseRequest = function(req, res) {
+
+    var dirs  = ['static'],
+        files = ['css', 'html', 'ico', 'js', 'png', 'txt', 'xml'];
+
+    var urlPath = url.parse(req.url).pathname,
+        hasFile = files.indexOf(urlPath.split('.').pop()) == -1,
+        hasPath = dirs.indexOf(urlPath.split('/')[1]) == -1;
+
+    if (hasFile && hasPath)
+        req.url = publishdir+'/index.html';
+
+    fileServer(req, res);
+}
+
+
+/**
+ * Converts a full file path, to the file name. minus any extension/min
+ * ie. foo/bar/something-whatevs-1.2.3.blah => something-whatevs
+ */
+var depName = function(path) { return path.split('/').pop().split(/-\d/).shift() }
+
+
+/**
+ * @param block
+ */
+var startBlock = function(block) {
+    gutil.log(gutil.colors.white(block+': ---------------------------'));
+}
+
+/**
+ * @param block
+ */
+var endBlock = function() {
+    gutil.log(gutil.colors.white('----------------------------------------'));
+}
