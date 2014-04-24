@@ -29,22 +29,18 @@ var uglify = require('gulp-uglify');
 var clean = require('gulp-clean');
 var filesize = require('gulp-filesize');
 var gutil = require('gulp-util');
-var connect = require('gulp-connect');
 var concat = require('gulp-concat');
 var open = require('gulp-open');
 var sequence = require('gulp-run-sequence');
-var ecstatic = require('ecstatic');
-var url = require('url');
-var http = require('http');
 var bower = require('gulp-bower-files');
-var filter = require('gulp-filter')
 var rename = require('gulp-rename');
-var tap = require('gulp-tap');
 var plumber = require('gulp-plumber');
 var csso = require('gulp-csso');
 var gif = require('gulp-if');
 var template = require('gulp-template');
 var stylish = require('jshint-stylish');
+var sass = require('gulp-sass');
+var prefixer = require('gulp-autoprefixer');
 
 
 /*
@@ -56,7 +52,8 @@ var PROD = (gutil.env.type === 'production');
 var bower_comps = [];
 
 var src = {
-    css: ['./src/styles/*.css'],
+    css: ['./src/scss/*.css'],
+    sass: ['./src/scss/*.scss'],
     js: ['./src/app/**/*.js'],
     assets: ['./src/assets/*'],
     common: ['./src/common/**/*.js'],
@@ -69,6 +66,7 @@ var publishdir = 'build'
 var dist = {
     all: [publishdir + '/**/*'],
     css: publishdir + '/static/',
+    sass: publishdir + '/static/',
     assets: publishdir + '/static/',
     js: publishdir + '/static/',
     vendor: publishdir + '/static/',
@@ -114,7 +112,7 @@ gulp.task('env', function(next) {
  */
 gulp.task('clean', function() {
     return gulp.src([publishdir], {read: false})
-        .pipe(plumber())
+        .pipe(plumber(err))
         .pipe(clean())
 });
 
@@ -128,12 +126,14 @@ gulp.task('clean', function() {
  */
 gulp.task('dist-vendor', function() {
 
-    var jsFilter = filter('**/*.js'),
-        cssFilter = filter('**/*.css'),
-        stream = bower();
+    var tap = require('gulp-tap')
+      , filter = require('gulp-filter')
+      , jsFilter = filter('**/*.js')
+      , cssFilter = filter('**/*.css')
+      , stream = bower();
 
     bower_comps = [];
-    stream.pipe(plumber())
+    stream.pipe(plumber(err))
 
         // Javascript
         .pipe(jsFilter)
@@ -167,7 +167,7 @@ gulp.task('dist-js', ['lint'], function() {
     var stream = gulp.src('./src/app/app.js', {read:false})
 
         // Browserify app
-        .pipe(plumber())
+        .pipe(plumber(err))
         .pipe(browserify(opts))
 
         // Listen for prebundle and errors
@@ -176,7 +176,7 @@ gulp.task('dist-js', ['lint'], function() {
         .pipe(concat('app.js'))
 
         // If Prod, rename and uglify
-        .pipe(gif(PROD, rename('app.min.js')))
+        .pipe(gif(PROD, rename({ext: '.min.js'})))
         .pipe(gif(PROD, uglify({outSourceMap: !PROD})))
 
         // Output stream
@@ -190,8 +190,9 @@ gulp.task('dist-js', ['lint'], function() {
 /**
  * Concat all local styles into app.css
  */
-gulp.task('dist-css', function() {
+gulp.task('dist-css-old', function() {
     var stream = gulp.src(src.css)
+        .pipe(plumber(err))
         .pipe(concat('app.css'))
         .pipe(gif(PROD, csso()))
         .pipe(gif(PROD, rename({ext: '.min.css'})))
@@ -202,10 +203,30 @@ gulp.task('dist-css', function() {
 
 
 /**
+ *
+ */
+gulp.task('dist-css', function() {
+    var opts = {
+        outputStyle: 'compressed',
+        sourceComments: 'map',
+        includePaths : ['./src/scss']
+    }
+
+    return gulp.src(src.sass)
+        .pipe(plumber(err))
+        .pipe(sass(opts))
+//        .pipe(prefixer('last 2 version', 'safari 5', 'ie 8', 'ie 9', 'opera 12.1', 'ios 6', 'android 4'))
+        .pipe(gif(PROD, rename({ext: '.min.css'})))
+        .pipe(gulp.dest(dist.css))
+});
+
+
+/**
  * Output image assets to the dist directory
  */
 gulp.task('dist-assets', function() {
     return gulp.src(src.assets)
+        .pipe(plumber(err))
         .pipe(gulp.dest(dist.assets));
 })
 
@@ -220,6 +241,7 @@ gulp.task('dist-html', function() {
         title: "ABCts Back-Office"
     }
     return gulp.src(src.index)
+        .pipe(plumber(err))
         .pipe(template(opts))
         .pipe(gulp.dest(publishdir));
 })
@@ -244,7 +266,7 @@ gulp.task('watch', ['server'], function() {
     gulp.watch(['./bower.json', './gulpfile.js'], ['build']);
 
     // Watch main js/css for changes
-    gulp.watch(['./src/styles/*'], 'dist-css');
+    gulp.watch(['./src/scss/*'], 'dist-css');
     gulp.watch(['./src/app/*', './src/common/*'], 'dist-js');
 
     // Watch asset sources
@@ -289,6 +311,14 @@ gulp.task('lint', function() {
  Private ------------------------------------------------
  */
 
+/**
+ * Outputs plumber errors
+ * @param err
+ */
+var err = function (err) {
+    gutil.beep();
+    gutil.log('Error: ' + gutil.colors.red(err));
+};
 
 /**
  *
@@ -317,28 +347,6 @@ var externalise = function(bundler) {
     });
     endBlock();
     return bundler;
-}
-
-
-
-/**
- * Utility to determin if the request is a static file, rather than a framework routing request
- * @param req
- * @returns {boolean}
- */
-var parseRequest = function(req, res) {
-
-    var dirs  = ['static'],
-        files = ['css', 'html', 'ico', 'js', 'png', 'txt', 'xml'];
-
-    var urlPath = url.parse(req.url).pathname,
-        hasFile = files.indexOf(urlPath.split('.').pop()) == -1,
-        hasPath = dirs.indexOf(urlPath.split('/')[1]) == -1;
-
-    if (hasFile && hasPath)
-        req.url = publishdir+'/index.html';
-
-    fileServer(req, res);
 }
 
 
