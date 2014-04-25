@@ -22,25 +22,9 @@
  */
 
 
-var gulp = require("gulp");
-var browserify = require("gulp-browserify");
-var jshint = require('gulp-jshint');
-var uglify = require('gulp-uglify');
-var clean = require('gulp-clean');
-var filesize = require('gulp-filesize');
-var gutil = require('gulp-util');
-var concat = require('gulp-concat');
-var open = require('gulp-open');
-var sequence = require('gulp-run-sequence');
-var bower = require('gulp-bower-files');
-var rename = require('gulp-rename');
-var plumber = require('gulp-plumber');
-var csso = require('gulp-csso');
-var gif = require('gulp-if');
-var template = require('gulp-template');
-var stylish = require('jshint-stylish');
-var sass = require('gulp-sass');
-var prefixer = require('gulp-autoprefixer');
+var gulp = require('gulp');
+var util = require('./lib/utils')
+var $    = require('gulp-load-plugins')({ camelize: true, lazy: false });
 
 
 /*
@@ -48,45 +32,27 @@ var prefixer = require('gulp-autoprefixer');
  */
 
 
-var PROD = (gutil.env.type === 'production');
-var bower_comps = [];
-
-var src = {
-    css: ['./src/scss/*.css'],
-    sass: ['./src/scss/*.scss'],
-    js: ['./src/app/**/*.js'],
-    assets: ['./src/assets/*'],
-    common: ['./src/common/**/*.js'],
-    bower: ['bower.json', '.bowerrc'],
-    gulp: ['gulpfile.js.json'],
-    index: './src/index.html'
-}
-
-var publishdir = 'build'
-var dist = {
-    all: [publishdir + '/**/*'],
-    css: publishdir + '/static/',
-    sass: publishdir + '/static/',
-    assets: publishdir + '/static/',
-    js: publishdir + '/static/',
-    vendor: publishdir + '/static/',
-    index: publishdir + 'index.html'
-}
-
+var PROD = ($.util.env.type === 'production');
+var cfg = require('./config.js');
+// var bowerComponents = [];
 
 /*
  Task runners ----------------------------------------------
  */
 
 
-gulp.task('default', ['watch']);
+//gulp.task('default', ['connect', 'watch']);
 
-gulp.task('clean', ['env'], function (cb) {
-    sequence('clean', cb);
+gulp.task('default', function (cb) {
+    $.runSequence('env','clean', 'build', 'watch', 'connect', cb);
 });
 
-gulp.task('build', ['clean'], function(cb) {
-    sequence('clean', 'dist-vendor', 'dist-js', 'dist-css', 'dist-assets', 'dist-html', cb);
+//gulp.task('clean', ['env'], function (cb) {
+//    $.runSequence('clean', cb);
+//});
+
+gulp.task('build', function(cb) {
+    $.runSequence('clean', 'dist-vendor', ['dist-js', 'dist-css', 'dist-assets', 'dist-html'], cb);
 })
 
 
@@ -99,10 +65,10 @@ gulp.task('build', ['clean'], function(cb) {
  * Print out environment details
  */
 gulp.task('env', function(next) {
-    var type = gutil.env.type
-      , env = type === undefined ? "dev" : type
-      , message = gutil.colors.magenta(env);
-    gutil.log('Environment: ' + message);
+    var type = $.util.env.type
+      , env = type === undefined ? 'dev' : type
+      , message = $.util.colors.magenta(env);
+    $.util.log('Environment: ' + message);
     next();
 });
 
@@ -111,9 +77,9 @@ gulp.task('env', function(next) {
  * Clean the build directory ~
  */
 gulp.task('clean', function() {
-    return gulp.src([publishdir], {read: false})
-        .pipe(plumber(err))
-        .pipe(clean())
+    return gulp.src([cfg.files.output], {read: false})
+        .pipe($.plumber(err))
+        .pipe($.clean())
 });
 
 
@@ -126,64 +92,67 @@ gulp.task('clean', function() {
  */
 gulp.task('dist-vendor', function() {
 
-    var tap = require('gulp-tap')
-      , filter = require('gulp-filter')
-      , jsFilter = filter('**/*.js')
-      , cssFilter = filter('**/*.css')
-      , stream = bower();
-
-    bower_comps = [];
-    stream.pipe(plumber(err))
+    var jsFilter = $.filter('**/*.js')
+      , cssFilter = $.filter('**/*.css');
+        cfg.bowerComponents = [];
+        
+    return $.bowerFiles({read: true})
+        .pipe($.plumber(err))
 
         // Javascript
         .pipe(jsFilter)
-        .pipe(tap(mapVendors))
-        .pipe(concat('vendor.js'))
-        .pipe(gulp.dest(dist.js))
+        .pipe($.browserify())
+        .on('prebundle', vendorModules)
+        .pipe($.concat(cfg.files.js.vendor.name))
+
+        .pipe($.if(PROD, $.rename({ext: '.min.js'})))
+        .pipe($.if(PROD, $.uglify()))
+
+        .pipe(gulp.dest(cfg.destDir))
         .pipe(jsFilter.restore())
 
         // Styles
         .pipe(cssFilter)
-        .pipe(concat('vendor.css'))
-        .pipe(gulp.dest(dist.css))
+        .pipe($.concat(cfg.files.styles.vendor.name))
+
+        .pipe($.if(PROD, $.rename({ext: '.min.css'})))
+        .pipe($.if(PROD, $.minifyCss()))
+
+        .pipe(gulp.dest(cfg.destDir))
         .pipe(cssFilter.restore())
 
         // Fonts
-        .pipe(rename(function(path) {
+        .pipe($.rename(function(path) {
             if (path.dirname.indexOf('fonts')) {
                 path.dirname = '/fonts'
             }
         }))
-        .pipe(gulp.dest(dist.vendor))
-
-    return stream;
+        .pipe(gulp.dest(cfg.destDir))
 })
 
 
 /**
  *  Browserify using vinyl-source-stream ~
  */
-gulp.task('dist-js', ['lint'], function() {
-    var stream = gulp.src('./src/app/app.js', {read:false})
+gulp.task('dist-js', function() {
+    return gulp.src(cfg.files.js.app.path, {read:false})
 
         // Browserify app
-        .pipe(plumber(err))
-        .pipe(browserify(opts))
+        .pipe($.plumber(err))
+        .pipe($.browserify())
 
         // Listen for prebundle and errors
-        .on('prebundle', externalise)
-        .on('error', gutil.log)
-        .pipe(concat('app.js'))
+        .on('prebundle', appModules)
+        .pipe($.concat(cfg.files.js.app.name))
 
         // If Prod, rename and uglify
-        .pipe(gif(PROD, rename({ext: '.min.js'})))
-        .pipe(gif(PROD, uglify({outSourceMap: !PROD})))
+        .pipe($.if(PROD, $.rename({ext: '.min.js'})))
+        .pipe($.if(PROD, $.uglify()))
 
         // Output stream
-        .pipe(gulp.dest('./build/static'))
-        .pipe(filesize());
-
-    return stream;
+        .pipe(gulp.dest(cfg.destDir))
+        .pipe($.connect.reload())
+        .pipe($.filesize());
 })
 
 
@@ -191,33 +160,34 @@ gulp.task('dist-js', ['lint'], function() {
  * Concat all local styles into app.css
  */
 gulp.task('dist-css-old', function() {
-    var stream = gulp.src(src.css)
-        .pipe(plumber(err))
-        .pipe(concat('app.css'))
-        .pipe(gif(PROD, csso()))
-        .pipe(gif(PROD, rename({ext: '.min.css'})))
-        .pipe(gulp.dest(dist.css))
-        .pipe(filesize())
+    var stream = gulp.src(cfg.files.styles.all)
+        .pipe($.plumber(err))
+        .pipe($.concat(cfg.files.styles.app.name))
+        .pipe($.if(PROD, $.csso()))
+        .pipe($.if(PROD, $.rename({ext: '.min.css'})))
+        .pipe(gulp.dest(cfg.destDir))
+        .pipe($.connect.reload())
+        .pipe($.filesize())
     return stream;
 })
 
 
 /**
- *
+ * Compiles
  */
 gulp.task('dist-css', function() {
     var opts = {
         outputStyle: 'compressed',
         sourceComments: 'map',
-        includePaths : ['./src/scss']
+        includePaths : [cfg.scssDir]
     }
-
-    return gulp.src(src.sass)
-        .pipe(plumber(err))
-        .pipe(sass(opts))
-//        .pipe(prefixer('last 2 version', 'safari 5', 'ie 8', 'ie 9', 'opera 12.1', 'ios 6', 'android 4'))
-        .pipe(gif(PROD, rename({ext: '.min.css'})))
-        .pipe(gulp.dest(dist.css))
+    return gulp.src(cfg.files.styles.all)
+        .pipe($.plumber(err))
+        .pipe($.sass(opts))
+        // .pipe($.autoprefixer('last 2 versions', { cascade: true }))
+        .pipe($.if(PROD, $.rename({ext: '.min.css'})))
+        .pipe(gulp.dest(cfg.destDir))
+        .pipe($.connect.reload());
 });
 
 
@@ -225,25 +195,28 @@ gulp.task('dist-css', function() {
  * Output image assets to the dist directory
  */
 gulp.task('dist-assets', function() {
-    return gulp.src(src.assets)
-        .pipe(plumber(err))
-        .pipe(gulp.dest(dist.assets));
+    return gulp.src(cfg.files.assets.all)
+        .pipe($.plumber(err))
+        .pipe(gulp.dest(cfg.destDir))
+        .pipe($.connect.reload());
 })
 
 
 
 /**
+
  * Output image assets to the dist directory
  */
 gulp.task('dist-html', function() {
     var opts = {
-        extension: (PROD) ? ".min." : ".",
-        title: "ABCts Back-Office"
+        extension: (PROD) ? '.min.' : '.',
+        title: cfg.appTitle
     }
-    return gulp.src(src.index)
-        .pipe(plumber(err))
-        .pipe(template(opts))
-        .pipe(gulp.dest(publishdir));
+    return gulp.src(cfg.files.html.index)
+        .pipe($.plumber(err))
+        .pipe($.template(opts))
+        .pipe(gulp.dest(cfg.destDir))
+        .pipe($.connect.reload());
 })
 
 
@@ -253,46 +226,40 @@ gulp.task('dist-html', function() {
 
 
 /**
+ * Connect the http server
+ */
+gulp.task('connect', $.connectMulti().server(cfg.server.opts));
+
+//gulp.task('connect', function(){
+//    connect.server();
+//});
+
+
+/**
  * Watch all application files for changes
  */
-gulp.task('watch', ['server'], function() {
-
-    var server = require('gulp-livereload')();
-    gulp.watch(dist.all).on('change' , function(file) {
-        server.changed(file.path);
-    })
+gulp.task('watch', function() {
 
     // Watch for changes in bower/gulp
-    gulp.watch(['./bower.json', './gulpfile.js'], ['build']);
+    // gulp.watch([cfg.files.bower, cfg.files.gulp], ['build']);
 
     // Watch main js/css for changes
-    gulp.watch(['./src/scss/*'], 'dist-css');
-    gulp.watch(['./src/app/*', './src/common/*'], 'dist-js');
+    gulp.watch([cfg.files.styles.all], 'dist-css');
+    gulp.watch([cfg.files.js.all, cfg.files.html.tpl], 'dist-js');
 
     // Watch asset sources
-    gulp.watch(['./src/index.html'], ['dist-html']);
-    gulp.watch(['./src/app/**/*.html'], ['dist-js']);
-    gulp.watch(['./src/assets/*'], ['build-assets']);
+    gulp.watch([cfg.files.html.index], ['dist-html']);
+    gulp.watch([cfg.files.html.tpl], ['dist-js']);
+    gulp.watch([cfg.files.assets.all], ['build-assets']);
 })
 
 
 /**
- *
+ * Open the browser
  */
-gulp.task('server', ['build'], function(next) {
-
-    var connect = require('connect')
-      , http = require('http');
-
-    var app = connect()
-        .use(connect.favicon())
-        .use(connect.static('./build'))
-        .use(function(req, res){
-            res.end('Hello from Connect!\n');
-        })
-
-    http.createServer(app).listen(3000);
-    next();
+gulp.task("open", function(){
+    gulp.src(cfg.files.html.output)
+        .pipe($.open("<%file.path%>",{url: cfg.server.url}));
 });
 
 
@@ -300,10 +267,10 @@ gulp.task('server', ['build'], function(next) {
  * JSHint the javascript
  */
 gulp.task('lint', function() {
-    return gulp.src('./src/app/*.js')
-        .pipe(jshint())
-        .pipe(jshint.reporter(stylish))
-        .pipe(jshint.reporter('fail'))
+    return gulp.src(cfg.files.js.all)
+        .pipe($.jshint())
+        .pipe($.jshint.reporter($.jshintStylish))
+        .pipe($.jshint.reporter('fail'))
 });
 
 
@@ -316,57 +283,37 @@ gulp.task('lint', function() {
  * @param err
  */
 var err = function (err) {
-    gutil.beep();
-    gutil.log('Error: ' + gutil.colors.red(err));
+    $.util.beep();
+    $.util.log('Error: ' + $.util.colors.red(err));
 };
 
-/**
- *
- * @param file
- * @param t
- */
-var mapVendors = function(file, t) {
-    gutil.log('Js: ' + gutil.colors.magenta(file.path));
-    bower_comps.push(file);
-}
-
 
 /**
- * Map externalised libraries
+ * Require vendor libraries and make them available outside the bundle
  * @param bundler
  */
-var externalise = function(bundler) {
+var vendorModules = function(bundler) {
+    if (cfg.bowerComponents.length > 0) return;
 
-    startBlock('Externalise');
-    gutil.log('Bower Components: ' + gutil.colors.red(bower_comps.length));
-
-    bower_comps.forEach(function (file) {
-        bundler.require(file.path, { external:true });
-//        bundler.external(file.path);
-        gutil.log('Component: ' + gutil.colors.green(file.path));
+    cfg.bowerComponents = util.getBowerFiles();
+    cfg.bowerComponents.forEach(function (obj) {
+        $.util.log('Browserify::require: ' + $.util.colors.green(obj.path));
+        bundler.require(obj.name, {expose:obj.name});
     });
-    endBlock();
     return bundler;
 }
 
 
 /**
- * Converts a full file path, to the file name. minus any extension/min
- * ie. foo/bar/something-whatevs-1.2.3.blah => something-whatevs
+ * The following modules are loaded from the vendor
+ bundle and are therefore marked as 'external'
+ * @param bundler
  */
-var depName = function(path) { return path.split('/').pop().split(/-\d/).shift() }
+var appModules = function (bundler) {
+    $.util.log('BowerComponents:: ' + $.util.colors.red(cfg.bowerComponents.length));
 
-
-/**
- * @param block
- */
-var startBlock = function(block) {
-    gutil.log(gutil.colors.white(block+': ---------------------------'));
-}
-
-/**
- * @param block
- */
-var endBlock = function() {
-    gutil.log(gutil.colors.white('----------------------------------------'));
+    cfg.bowerComponents.forEach(function (obj) {
+        $.util.log('Browserify::external: ' + $.util.colors.green(obj.name) + ' - Path: ' + $.util.colors.green(obj.path));
+        bundler.external(obj.name);
+    });
 }

@@ -4,8 +4,8 @@ module.exports = function (grunt) {
         clean: ['./public/*'],
         browserify: {
             app: {
-                src: ['./src/app/app.js'],
-                dest: './public/app.js',
+                src: ['./src/js/js.js'],
+                dest: './public/js.js',
                 options: {
                     transform: ['debowerify', 'partialify']
                 }
@@ -27,7 +27,7 @@ module.exports = function (grunt) {
         },
         watch: {
             src: {
-                files: ['./src/app/**/*',
+                files: ['./src/js/**/*',
                         './src/common/**/*',
                         './src/index.html'],
                 tasks: ['default'],
