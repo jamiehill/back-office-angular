@@ -22,9 +22,9 @@
  */
 
 
-var gulp = require('gulp');
-var util = require('./lib/utils')
-var $    = require('gulp-load-plugins')({ camelize: true, lazy: false });
+var gulp = require('gulp')
+  , util = require('./lib/bower-utils')({debug:true})
+  , $    = require('gulp-load-plugins')({ camelize: true, lazy: false });
 
 
 /*
@@ -32,24 +32,19 @@ var $    = require('gulp-load-plugins')({ camelize: true, lazy: false });
  */
 
 
-var PROD = ($.util.env.type === 'production');
-var cfg = require('./config.js');
-// var bowerComponents = [];
+var PROD = ($.util.env.type === 'production')
+  , cfg = require('./config.js');
+
 
 /*
  Task runners ----------------------------------------------
  */
 
 
-//gulp.task('default', ['connect', 'watch']);
-
 gulp.task('default', function (cb) {
     $.runSequence('env','clean', 'build', 'watch', 'connect', cb);
 });
 
-//gulp.task('clean', ['env'], function (cb) {
-//    $.runSequence('clean', cb);
-//});
 
 gulp.task('build', function(cb) {
     $.runSequence('clean', 'dist-vendor', ['dist-js', 'dist-css', 'dist-assets', 'dist-html'], cb);
@@ -59,28 +54,6 @@ gulp.task('build', function(cb) {
 /*
  Build tasks -----------------------------------
  */
-
-
-/**
- * Print out environment details
- */
-gulp.task('env', function(next) {
-    var type = $.util.env.type
-      , env = type === undefined ? 'dev' : type
-      , message = $.util.colors.magenta(env);
-    $.util.log('Environment: ' + message);
-    next();
-});
-
-
-/**
- * Clean the build directory ~
- */
-gulp.task('clean', function() {
-    return gulp.src([cfg.files.output], {read: false})
-        .pipe($.plumber(err))
-        .pipe($.clean())
-});
 
 
 /**
@@ -94,9 +67,9 @@ gulp.task('dist-vendor', function() {
 
     var jsFilter = $.filter('**/*.js')
       , cssFilter = $.filter('**/*.css');
-        cfg.bowerComponents = [];
+        cfg.bowerComponents = util.getPackagePaths();
         
-    return $.bowerFiles({read: true})
+    return gulp.src(cfg.bowerComponents , {read: false})
         .pipe($.plumber(err))
 
         // Javascript
@@ -225,6 +198,26 @@ gulp.task('dist-html', function() {
  */
 
 
+ /**
+ * Print out environment details
+ */
+gulp.task('env', function() {
+    var type = $.util.env.type
+      , env = type === undefined ? 'dev' : type;
+    $.util.log('Environment: ' + $.util.colors.magenta(env));
+});
+
+
+/**
+ * Clean the build directory ~
+ */
+gulp.task('clean', function() {
+    return gulp.src([cfg.files.output], {read: false})
+        .pipe($.plumber(err))
+        .pipe($.clean())
+});
+
+
 /**
  * Connect the http server
  */
@@ -293,9 +286,6 @@ var err = function (err) {
  * @param bundler
  */
 var vendorModules = function(bundler) {
-    if (cfg.bowerComponents.length > 0) return;
-
-    cfg.bowerComponents = util.getBowerFiles();
     cfg.bowerComponents.forEach(function (obj) {
         $.util.log('Browserify::require: ' + $.util.colors.green(obj.path));
         bundler.require(obj.name, {expose:obj.name});
@@ -310,10 +300,7 @@ var vendorModules = function(bundler) {
  * @param bundler
  */
 var appModules = function (bundler) {
-    $.util.log('BowerComponents:: ' + $.util.colors.red(cfg.bowerComponents.length));
-
     cfg.bowerComponents.forEach(function (obj) {
-        $.util.log('Browserify::external: ' + $.util.colors.green(obj.name) + ' - Path: ' + $.util.colors.green(obj.path));
-        bundler.external(obj.name);
+        bundler.external(obj);
     });
 }
