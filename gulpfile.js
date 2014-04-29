@@ -22,9 +22,12 @@
  */
 
 
-var gulp = require('gulp')
-  , util = require('./lib/bower-utils')({debug:true})
-  , $    = require('gulp-load-plugins')({ camelize: true, lazy: false });
+var gulp        = require('gulp')
+  , packager    = require('./lib/packager')({debug:true})
+  , browserify  = require('gulp-browserify')
+  , source      = require('vinyl-source-stream')
+  , $           = require('gulp-load-plugins')({ camelize: true, lazy: false })
+  , _           = require('lodash');
 
 
 /*
@@ -33,7 +36,7 @@ var gulp = require('gulp')
 
 
 var PROD = ($.util.env.type === 'production')
-  , cfg = require('./config.js');
+  , cfg = require('./build.config.js');
 
 
 /*
@@ -57,25 +60,39 @@ gulp.task('build', function(cb) {
 
 
 /**
+ * Browserify using a dummy entry point, 'requiring' the bower components on prebundle
+ */
+gulp.task('dist-vendor', function() {
+    return gulp.src(cfg.files.js.noop , {read: false})
+        .pipe(browserify())
+        .on('prebundle', function(bundle) {
+            packager.require(bundle);
+        })
+        .pipe($.concat(cfg.files.js.vendor.name))
+        .pipe(gulp.dest(cfg.destDir));
+})
+
+
+/**
  * Concats all bower component js/css
  *
  * concat *.js to `vendor.js`
  * and *.css to `vendor.css`
  * rename fonts to `fonts/*.*`
  */
-gulp.task('dist-vendor', function() {
-
+gulp.task('dist-vendor2', function() {
     var jsFilter = $.filter('**/*.js')
       , cssFilter = $.filter('**/*.css');
-        cfg.bowerComponents = util.getPackagePaths();
-        
-    return gulp.src(cfg.bowerComponents , {read: false})
-        .pipe($.plumber(err))
+
+    return gulp.src(cfg.files.js.noop, {read: false})
 
         // Javascript
         .pipe(jsFilter)
-        .pipe($.browserify())
-        .on('prebundle', vendorModules)
+        .pipe($.plumber(err))
+        .pipe(browserify())
+        .on('prebundle', function(bundle) {
+            packager.require(bundle);
+        })
         .pipe($.concat(cfg.files.js.vendor.name))
 
         .pipe($.if(PROD, $.rename({ext: '.min.js'})))
@@ -95,12 +112,12 @@ gulp.task('dist-vendor', function() {
         .pipe(cssFilter.restore())
 
         // Fonts
-        .pipe($.rename(function(path) {
-            if (path.dirname.indexOf('fonts')) {
-                path.dirname = '/fonts'
-            }
-        }))
-        .pipe(gulp.dest(cfg.destDir))
+        // .pipe($.rename(function(path) {
+        //     if (path.dirname.indexOf('fonts')) {
+        //         path.dirname = '/fonts'
+        //     }
+        // }))
+        // .pipe(gulp.dest(cfg.destDir))
 })
 
 
@@ -109,13 +126,11 @@ gulp.task('dist-vendor', function() {
  */
 gulp.task('dist-js', function() {
     return gulp.src(cfg.files.js.app.path, {read:false})
-
-        // Browserify app
         .pipe($.plumber(err))
-        .pipe($.browserify())
-
-        // Listen for prebundle and errors
-        .on('prebundle', appModules)
+        .pipe(browserify())
+        .on('prebundle', function(bundle) {
+            packager.external(bundle);
+        })
         .pipe($.concat(cfg.files.js.app.name))
 
         // If Prod, rename and uglify
@@ -223,10 +238,6 @@ gulp.task('clean', function() {
  */
 gulp.task('connect', $.connectMulti().server(cfg.server.opts));
 
-//gulp.task('connect', function(){
-//    connect.server();
-//});
-
 
 /**
  * Watch all application files for changes
@@ -237,13 +248,13 @@ gulp.task('watch', function() {
     // gulp.watch([cfg.files.bower, cfg.files.gulp], ['build']);
 
     // Watch main js/css for changes
-    gulp.watch([cfg.files.styles.all], 'dist-css');
-    gulp.watch([cfg.files.js.all, cfg.files.html.tpl], 'dist-js');
+    // gulp.watch([cfg.files.styles.all], 'dist-css');
+    // gulp.watch([cfg.files.js.all, cfg.files.html.tpl], 'dist-js');
 
     // Watch asset sources
-    gulp.watch([cfg.files.html.index], ['dist-html']);
-    gulp.watch([cfg.files.html.tpl], ['dist-js']);
-    gulp.watch([cfg.files.assets.all], ['build-assets']);
+    // gulp.watch([cfg.files.html.index], ['dist-html']);
+    // gulp.watch([cfg.files.html.tpl], ['dist-js']);
+    // gulp.watch([cfg.files.assets.all], ['build-assets']);
 })
 
 
@@ -279,28 +290,3 @@ var err = function (err) {
     $.util.beep();
     $.util.log('Error: ' + $.util.colors.red(err));
 };
-
-
-/**
- * Require vendor libraries and make them available outside the bundle
- * @param bundler
- */
-var vendorModules = function(bundler) {
-    cfg.bowerComponents.forEach(function (obj) {
-        $.util.log('Browserify::require: ' + $.util.colors.green(obj.path));
-        bundler.require(obj.name, {expose:obj.name});
-    });
-    return bundler;
-}
-
-
-/**
- * The following modules are loaded from the vendor
- bundle and are therefore marked as 'external'
- * @param bundler
- */
-var appModules = function (bundler) {
-    cfg.bowerComponents.forEach(function (obj) {
-        bundler.external(obj);
-    });
-}

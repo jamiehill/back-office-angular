@@ -2,7 +2,8 @@ var es = require('event-stream'),
   CleanCSS  = require('clean-css'),
   clone = require('clone'),
   BufferStreams = require('bufferstreams'),
-  gutil = require('gulp-util');
+  gutil = require('gulp-util'),
+  path = require('path');
 
 // File level transform function
 function minifyCSSTransform(opt) {
@@ -37,7 +38,17 @@ function minifyCSSGulp(opt){
 
     var newFile = clone(file);
 
+    // Image URLs are rebased with the assumption that they are relative to the
+    // CSS file they appear in (unless "relativeTo" option is explicitly set by
+    // caller)
+    var relativeToTmp = opt.relativeTo;
+    opt.relativeTo = relativeToTmp || path.resolve(path.dirname(file.path));
+
     var newContents = new CleanCSS(opt).minify(String(newFile.contents));
+
+    // Restore original "relativeTo" value
+    opt.relativeTo = relativeToTmp;
+
     newFile.contents = new Buffer(newContents);
     cb(null, newFile);
   }

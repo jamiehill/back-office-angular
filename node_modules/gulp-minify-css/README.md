@@ -24,12 +24,12 @@ npm install --save-dev gulp-minify-css
 ## Usage
 
 ```js
-var minifyCSS = require('gulp-minify-css');
+var gulp = require('gulp'),
+		minifyCSS = require('gulp-minify-css');
 
 gulp.task('minify-css', function() {
-
   gulp.src('./static/css/*.css')
-    .pipe(minifyCSS(opts))
+    .pipe(minifyCSS({keepBreaks:true}))
     .pipe(gulp.dest('./dist/'))
 });
 ```
