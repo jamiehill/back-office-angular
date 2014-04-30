@@ -12,6 +12,7 @@ module.exports = {
 
     srcDir: './src',
     destDir: './public',
+    tmpDir: './.tmp',
 
     appDir: './src/js',
     assetDir: './src/assets',
@@ -29,6 +30,7 @@ module.exports = {
             app: {
                 name: 'app.js',
                 path: './src/js/app.js',
+                token: './src/js/app*.js',
                 output: 'back-office.js'
             },
 
@@ -43,6 +45,7 @@ module.exports = {
 
 
         html: {
+            name: 'index.html',
             index: './src/index.html',
             output: './public/index.html',
             title: 'Ats Back Office',
@@ -101,6 +104,13 @@ module.exports = {
             open: {
                 file: 'index.html'
             }
+        },
+
+        express: {
+            port: 4000,
+            root: './.tmp',
+            liveReloadPort: 35729,
+            timeout: 5000
         }
     }
 
