@@ -148,7 +148,6 @@ function scripts(cb) {
     var bundler = watchify(cfg.files.js.app.source)
         .transform('partialify')
         .transform('deamdify')
-        .transform('debowerify')
         
         .on('update', function(){invoke(rebundleScripts)})
         .on('error', $.util.log);
@@ -262,6 +261,13 @@ function startLiveReload(cb) {
   });
   cb();
 }
+
+
+function open(cb){
+      gulp.src(cfg.files.html.output)
+          .pipe($.open("<%file.path%>",{url: cfg.server.url}));
+      cb();
+  }
 
 
 function chain() {
