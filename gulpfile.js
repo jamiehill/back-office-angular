@@ -206,7 +206,7 @@ function index(cb) {
     .pipe(inject(cfg.files.js.app.output, cfg.files.js.app.tag))
     .pipe(inject(cfg.files.js.vendor.output, cfg.files.js.vendor.tag))
 
-    .pipe(gulp.dest(cfg.destDir));
+    .pipe(gulp.dest(cfg.destDir))
     .on('end', cb || callback)
     .on('error', $.util.log); 
 }
