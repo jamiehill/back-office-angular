@@ -1,7 +1,0 @@
-.DS_Store
-node_modules
-.idea
-test/components
-tmp/
-build/angular-kendo.min.js
-*.nupkg

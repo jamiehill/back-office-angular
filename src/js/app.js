@@ -14,4 +14,8 @@ angular.module('app', [ "ngRoute",
     require('./main/main.js').name])
 
     // Config
-    .config(require('./routes'));
+    .config(require('./routes'))
+
+    .controller('AppCtrl', ['$scope', function ($scope) {
+       $scope.say = "Hello World!";
+    }]);

@@ -10,6 +10,7 @@ module.exports = {
     appName: 'back-office',
     appTitle: 'Ats Back Office',
 
+    rootDir: './',
     srcDir: './src',
     destDir: './public',
     tmpDir: './.tmp',
@@ -23,20 +24,21 @@ module.exports = {
 
     files: {
 
-        output: './public/*',
+        output: './public/*.*',
 
         js: {
 
             app: {
                 name: 'app.js',
-                path: './src/js/app.js',
-                token: './src/js/app*.js',
-                output: 'back-office.js'
+                source: './src/js/app.js',
+                output: './public/app*.js',
+                tag: 'app:js'
             },
 
             vendor: {
                 name: 'vendor.js',
-                path: './public/vendor.js'
+                output: './public/vendor*.js',
+                tag: 'vendor:js'
             },
 
             noop: './lib/noop.js',
@@ -46,7 +48,7 @@ module.exports = {
 
         html: {
             name: 'index.html',
-            index: './src/index.html',
+            source: './src/index.html',
             output: './public/index.html',
             title: 'Ats Back Office',
             tpl: './src/js/**/*.tpl.html'
@@ -57,14 +59,15 @@ module.exports = {
 
             app: {
                 name: 'app.css',
-                path: './src/scss/app.css',
-                output: 'app.js'
+                source: './src/scss/app.css',
+                output: './public/style*.css',
+                tag: 'app-style:css'
             },
 
             vendor: {
                 name: 'vendor.css',
-                path: './public/vendor.css',
-                output: 'vendor.css'
+                output: './public/vendor*.css',
+                tag: 'vendor-style:css'
             },
 
             all: './src/scss/**/*.scss',
@@ -72,15 +75,24 @@ module.exports = {
             opts: {
                 outputStyle: 'nested',
                 sourceComments: 'map',
-                includePaths : './src/scss'
+                includePaths : ['./src/scss', './bower_components']
             }
         },
 
 
-        assets: {
-            img: './src/assets/img/*',
-            favicon: './src/assets/favicon.ico',
-            all: './src/assets/**/*'
+        images: {
+            img: './src/images/*',
+            favicon: './src/images/favicon.ico',
+            all: './src/images/**/*',
+            folder: 'img',
+            dest: './public/img'
+        },
+
+
+        fonts: {
+            all: ['./bower_components/**/fonts/*'],
+            icons: './public/fonts/icons',
+            dest: './public/fonts'
         },
 
 
@@ -88,6 +100,7 @@ module.exports = {
         gulp : './gulpfile.js',
         npm  : './package.json'
     },
+
 
     /**
      * Settings for the server task
@@ -100,7 +113,7 @@ module.exports = {
         opts: {
             root: ['./public'],
             port: '3000',
-            livereload: { port: 35729 },
+            livereload: true,
             open: {
                 file: 'index.html'
             }
