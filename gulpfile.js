@@ -34,7 +34,8 @@ var gulp        = require('gulp')
   , source      = require('vinyl-source-stream')
   , async       = require('async')
   , chalk       = require('chalk')
-  , lr          = require('tiny-lr')();
+  , lr          = require('tiny-lr')()
+  , watcher     = require('gulp-watch');
 
 
 /*
@@ -42,9 +43,10 @@ var gulp        = require('gulp')
  */
 
 
-var PROD  = ($.util.env.type === 'production')
-  , DEV   = (PROD === false)
-  , cfg   = require('./build.config.js');
+var PROD   = ($.util.env.type === 'production')
+  , DEV    = (PROD === false)
+  , cfg    = require('./build.config.js')
+  , server = $.livereload();
 
 
 /*
@@ -53,8 +55,7 @@ var PROD  = ($.util.env.type === 'production')
 
 
 gulp.task('default', function () {
-  var tasks = [ images,  styles, vendor, scripts, index, watch, startExpress, startLiveReload, open ];
-  async.eachSeries(tasks, invoke);
+  chain(images,  styles, vendor, scripts, index, watch, startExpress, startLiveReload, open);
 });
 
 
@@ -117,14 +118,13 @@ function vendor(cb) {
   var bundler = watchify(cfg.files.js.noop)
     .transform('deamdify')
     
-    .on('update', rebundle)
+    .on('update', function(){invoke(rebundleVendor)})
     .on('error', $.util.log);
 
-  function rebundle() {
+  function rebundleVendor() {
     clean('vendor*.js', function() {
-      $.util.log('Rebuilding vendor JS bundle ---');
-
       packager.require(bundler);
+      
       bundler.bundle({ debug: true })
         .pipe(source(cfg.files.js.vendor.name))
 
@@ -139,7 +139,7 @@ function vendor(cb) {
         .on('error', $.util.log);
     });
   }
-  rebundle();
+  rebundleVendor();
 }
 
 
@@ -148,29 +148,28 @@ function scripts(cb) {
     .transform('partialify')
     .transform('deamdify')
 
-    .on('update', rebundle)
+    .on('update', function(){invoke(rebundleScripts)})
     .on('error', $.util.log);
 
-  function rebundle() {
+  function rebundleScripts() {
     clean('app*.js', function() {
-      $.util.log('Rebuilding application JS bundle ---');
-
       packager.external(bundler);
-      bundler.bundle({ debug: true })
+
+      return bundler.bundle({ debug: true })
         .pipe(source(cfg.files.js.app.name))
 
-        .pipe($.if(DEV, $.streamify($.rev())))
+        // .pipe($.if(DEV, $.streamify($.rev())))
         // .pipe($.if(PROD, $.streamify($.ngmin())))
         // .pipe($.if(PROD, $.streamify($.uglify({ mangle: false }))))
-        .pipe($.streamify($.size({ showFiles: true })))
-        .pipe($.rename({ext: '.min.js'}))  
+        // .pipe($.streamify($.size({ showFiles: true })))
+        // .pipe($.rename({ext: '.min.js'}))  
         .pipe(gulp.dest(cfg.destDir))
 
         .on('end', cb || callback)
         .on('error', $.util.log);
     });
   }
-  rebundle();
+  rebundleScripts();
 }
 
 
@@ -213,7 +212,7 @@ function index(cb) {
 
 
 function watch(cb) {
-  // var server = $.livereload();
+
   // output
   // gulp.watch(cfg.destDir, function(file) {
   //   $.util.log(chalk.cyan('File changed: '+JSON.stringify(file, null, 4)));
@@ -228,40 +227,13 @@ function watch(cb) {
   // gulp.watch(cfg.files.images.all, images);
   // gulp.watch(cfg.files.fonts.all, fonts);
 
-
-  // gulp.watch(cfg.files.styles.all, styles);
-
-  // gulp.watch(cfg.files.styles.all).on('change', function() {
-  //   styles();
-  // })
-
-
-  gulp.watch(cfg.files.styles.all, function(event) {
-
-    invoke(styles, function(){
-      invoke(index, function(){
-        notifyLivereload(event);
-      })
-    })
+  gulp.watch(cfg.files.styles.all, function(event){
+    chainReload([styles, index], event.path);
   });
 
-
-  // gulp.watch(cfg.files.output, function(event) {
-
-  //   // invoke(styles, function(){
-  //     invoke(index, function(){
-  //       notifyLivereload(event);
-  //     })
-  //   // })
-  // });
-
-
-  // gulp.watch(cfg.destDir).on('change', function(file) {
-  //   $.util.log(chalk.cyan('File changed: '+JSON.stringify(file, null, 4)));
-  //   server.changed(file.path);
-  // })
-
-  // gulp.watch(cfg.files.output, notifyLivereload);
+  gulp.watch(cfg.files.images.all, function(event){
+    chainReload([images], event.path);
+  });
 
   cb();
 }
@@ -270,22 +242,6 @@ function watch(cb) {
  /*
  Server -----------------------------------
  */
-
-
-// gulp.task('connect', function (cb) {
-function connecter(cb) {
-  return connect.server({
-    root: './public',
-    port: 3000,
-    livereload: {port: 35729},
-    open: {
-      file: 'index.html'
-    }
-  });
-  cb();
-}
-
-
 
 
 function startExpress(cb) {
@@ -309,7 +265,7 @@ function startLiveReload(cb) {
 
 
 function notifyLivereload(event) {
-  gulp.src(event.path, {read: false})
+  return gulp.src(event.path, {read: false})
       .pipe(require('gulp-livereload')(lr));
 }
 
@@ -318,6 +274,20 @@ function open(cb){
     gulp.src(cfg.files.html.output)
         .pipe($.open("<%file.path%>",{url: cfg.server.url}));
     cb();
+}
+
+
+function chain() {
+  var tasks = Array.prototype.slice.call(arguments);
+  async.eachSeries(tasks, invoke);
+}
+
+
+function chainReload() {
+  var args = Array.prototype.slice.call(arguments)
+  async.eachSeries(args[0], invoke, function(){
+    server.changed(args[1]);
+  });
 }
 
 

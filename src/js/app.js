@@ -17,5 +17,5 @@ angular.module('app', [ "ngRoute",
     .config(require('./routes'))
 
     .controller('AppCtrl', ['$scope', function ($scope) {
-       $scope.say = "Hello World!";
+       $scope.say = "Hello World!!!!";
     }]);
