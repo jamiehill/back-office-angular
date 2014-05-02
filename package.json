@@ -4,8 +4,12 @@
   "description": "Ats Back Office",
   "main": "src/js/js.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "clean": "rm -rf node_modules && npm cache clean"
+    "clean": "rm -rf node_modules && npm cache clean",
+    "install-app": "npm run install-bower && npm run install-gulp && npm run install-deps",
+    "install-bower": "sudo npm install bower -g",
+    "install-gulp": "sudo npm install gulp -g",
+    "install-deps": "npm install && bower install"
+
   },
   "author": "James Hill",
   "license": "MIT",
