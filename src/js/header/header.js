@@ -14,20 +14,13 @@ module.exports = angular.module('app.header', [])
     // Header controller
     .controller('HeaderCtrl', ['$scope', function ($scope) {
 
+        $scope.projectName = "Back Office";
+
         // controller
         $scope.window = {
             open: function() {
             $scope.modal.center().open();
         }
     };
-//        $scope.location = $location;
-
-//        $scope.isAuthenticated = security.isAuthenticated;
-//        $scope.isAdmin = security.isAdmin;
-//
-//        $scope.home = function () {
-//            var path = security.isAuthenticated() ?
-//                '/dashboard' : 'projects'
-//            $location.path(path);
 //        };
-    }]);
+}]);

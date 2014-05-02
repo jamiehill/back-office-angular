@@ -1,12 +1,19 @@
 'strict';
 
-require('jquery');
+
 require('angular');
 require('angular-route');
-require('kendo-ui');
-require('angular-kendo');
+require('angular-bootstrap');
 
-angular.module('app', [ "ngRoute", 'kendo.directives', 
+require('../common/security/index.js');
+
+
+angular.module('app', [ 
+
+	"ngRoute", 'ui.bootstrap',
+
+	// Ats module dependencies
+	'security',
 
     // Dependencies
     require('./header/header.js').name,
@@ -17,5 +24,5 @@ angular.module('app', [ "ngRoute", 'kendo.directives',
     .config(require('./routes'))
 
     .controller('AppCtrl', ['$scope', function ($scope) {
-       $scope.say = "Hello Lucy!";
+       
     }]);

@@ -5,11 +5,12 @@
   "main": "src/js/js.js",
   "scripts": {
     "clean": "rm -rf node_modules && npm cache clean",
-    "install-app": "npm run install-bower && npm run install-gulp && npm run install-deps",
+    "install-app": "npm run install-bower && npm run install-gulp && npm run install-deps && npm run install-compass",
     "install-bower": "sudo npm install bower -g",
     "install-gulp": "sudo npm install gulp -g",
-    "install-deps": "npm install && bower install"
-
+    "install-deps": "npm install && bower install",
+    "install-compass": "gem update --system && gem install compass",
+    "install-compass-fix": "rvm osx-ssl-certs update all"
   },
   "author": "James Hill",
   "license": "MIT",
@@ -49,7 +50,11 @@
     "rimraf": "^2.2.6",
     "tiny-lr": "0.0.5",
     "vinyl-source-stream": "^0.1.1",
-    "watchify": "^0.8.2"
+    "watchify": "^0.8.2",
+    "gulp-compass": "^1.1.8",
+    "node-bourbon": "^1.2.2",
+    "gulp-jshint": "^1.5.5",
+    "jshint-stylish": "^0.2.0"
   },
   "browserify": {
     "transform": [
@@ -62,5 +67,8 @@
       "deamdify",
       "partialify"
     ]
+  },
+  "jshintConfig": {
+    "asi": false
   }
 }

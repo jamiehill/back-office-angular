@@ -36,7 +36,9 @@ var gulp        = require('gulp')
   , chalk       = require('chalk')
   , lr          = require('tiny-lr')()
   , watcher     = require('gulp-watch')
-  , gulpReload  = require('gulp-livereload');
+  , gulpReload  = require('gulp-livereload')
+  , neat        = require('node-neat')
+  , stylish     = require('jshint-stylish');
 
 
 /*
@@ -56,7 +58,7 @@ var PROD   = ($.util.env.type === 'production')
 
 
 gulp.task('default', function () {
-  chain(images,  vendorstyles, styles, vendor, scripts, index, watch, startExpress, startLiveReload, open);
+  chain(images, vendorstyles, styles, vendor, lint, scripts, index, watch, startExpress, startLiveReload, open);
 });
 
 
@@ -74,6 +76,21 @@ function clean(p, cb) {
     .pipe($.rimraf({ force: true }));
 
   (cb || callback)();
+}
+
+
+/**
+ * JSHint the javascript
+ */
+function lint(cb) {
+    return gulp.src(cfg.files.js.all)
+      .pipe($.jshint())
+      // .pipe($.jshint.reporter('default'))
+      .pipe($.jshint.reporter(stylish))
+      // .pipe($.jshint.reporter('fail'))
+
+      .on('end', cb || callback)
+      .on('error', $.util.log);
 }
 
 
@@ -121,11 +138,15 @@ function styles(cb) {
 
     gulp.src(cfg.files.styles.all)
       .pipe($.plumber())
-      .pipe($.sass(cfg.files.styles.opts))
+      .pipe($.sass({
+          includePaths: neat.with(cfg.scssDir),
+          outputStyle: 'expanded',
+          sourceComments: 'map'
+      }))
 
       .pipe($.if(DEV, $.streamify($.rev())))
       .pipe($.if(PROD, $.csso()))
-      .pipe($.if(PROD, $.rename({ext: '.min.css'})))  
+      // .pipe($.if(PROD, $.rename({ext: '.min.css'})))  
 
       .pipe($.size({ showFiles: true }))
       .pipe(gulp.dest(cfg.destDir))
@@ -145,7 +166,7 @@ function vendor(cb) {
   
   function rebundleVendor() {
     clean('vendor*.js', function() {
-      return bundler.bundle({ debug: true })
+      return bundler.bundle(cfg.browserify)
         .pipe(source(cfg.files.js.vendor.name))
 
         .pipe($.if(DEV, $.streamify($.rev())))
@@ -175,7 +196,7 @@ function scripts(cb) {
 
   function rebundleScripts() {
     clean('app*.js', function() {
-      return bundler.bundle()
+      return bundler.bundle(cfg.browserify)
         .pipe(source(cfg.files.js.app.name))
 
         .pipe($.if(DEV, $.streamify($.rev())))
@@ -235,7 +256,7 @@ function index(cb) {
 
 
 function watch(cb) {
-  gulp.watch(cfg.files.js.app.output, function(event){
+  gulp.watch(cfg.files.js.output, function(event){
     chainReload([index], event.path);
   });
 

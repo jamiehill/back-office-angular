@@ -21,6 +21,10 @@ module.exports = {
     scssDir: './src/scss',
 
     bowerComponents: [],
+    browserify: {
+        debug: true,
+        insertGlobals: true
+    },
 
     files: {
 
@@ -42,7 +46,8 @@ module.exports = {
             },
 
             noop: './lib/noop.js',
-            all: [ './src/js/**/*.js', '!./src/js/**/*.spec.js' ]
+            all: [ './src/js/**/*.js', './src/common/**/*.js', '!./src/js/**/*.spec.js' ],
+            output: './public/**/*.js'
         },
 
 
@@ -60,7 +65,7 @@ module.exports = {
             app: {
                 name: 'app.css',
                 source: './src/scss/app.css',
-                output: './public/style*.css',
+                output: './public/app*.css',
                 tag: 'app-style:css'
             },
 
@@ -68,16 +73,32 @@ module.exports = {
                 name: 'vendor.css',
                 output: './public/vendor*.css',
                 tag: 'vendor-style:css',
-                all: ['./bower_components/kendo-ui/styles/web/kendo.common.core.min.css', './bower_components/kendo-ui/styles/web/kendo.default.min.css']
+                all: [
+                    './bower_components/kendo-ui/styles/web/kendo.common.core.min.css',
+                    './bower_components/kendo-ui/styles/web/kendo.default.min.css',
+                    './bower_components/bootstrap/dist/css/bootstrap.min.css'
+                ]
             },
 
             all: './src/scss/**/*.scss',
             output: 'back-office.css',
-            opts: {
-                outputStyle: 'nested',
-                sourceComments: 'map',
-                includePaths : ['./src/scss', './bower_components']
+
+            scss: {
+                opts: {
+                    outputStyle: 'nested',
+                    sourceComments: 'map',
+                    includePaths : ['./src/scss']
+                }
+            },
+
+            compass: {
+                opts: {
+                    config_file: './config.rb'
+                }
             }
+
+            
+
         },
 
 

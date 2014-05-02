@@ -13,5 +13,5 @@ module.exports = angular.module('app.footer', [])
 
     // Main footer controller
     .controller('FooterCtrl', ['$scope', function ($scope) {
-
+        
     }]);
