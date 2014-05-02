@@ -17,6 +17,7 @@
     "debowerify": "^0.7.0",
     "express": "^4.1.1",
     "gulp": "^3.6.2",
+    "gulp-concat": "^2.2.0",
     "gulp-connect": "^2.0.5",
     "gulp-connect-multi": "^1.0.8",
     "gulp-csso": "^0.2.8",

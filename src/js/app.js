@@ -1,12 +1,12 @@
 'strict';
 
-// require('jquery');
+require('jquery');
 require('angular');
 require('angular-route');
-//require('kendo-ui-core');
-//require('angular-kendo-ui');
+require('kendo-ui');
+require('angular-kendo');
 
-angular.module('app', [ "ngRoute",
+angular.module('app', [ "ngRoute", 'kendo.directives', 
 
     // Dependencies
     require('./header/header.js').name,

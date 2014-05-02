@@ -14,6 +14,12 @@ module.exports = angular.module('app.header', [])
     // Header controller
     .controller('HeaderCtrl', ['$scope', function ($scope) {
 
+        // controller
+        $scope.window = {
+            open: function() {
+            $scope.modal.center().open();
+        }
+    };
 //        $scope.location = $location;
 
 //        $scope.isAuthenticated = security.isAuthenticated;

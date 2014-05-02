@@ -29,7 +29,7 @@ var gulp        = require('gulp')
   , watchify    = require('watchify')
   , path        = require('path')
   , connect     = require('gulp-connect')
-  , packager    = require('./lib/packager')({debug: false})
+  , packager    = require('./lib/packager')({debug: true})
   , $           = require('gulp-load-plugins')({ camelize: true, lazy: false })
   , source      = require('vinyl-source-stream')
   , async       = require('async')
@@ -56,7 +56,7 @@ var PROD   = ($.util.env.type === 'production')
 
 
 gulp.task('default', function () {
-  chain(images,  styles,  scripts, index, watch, startExpress, startLiveReload, open);
+  chain(images,  vendorstyles, styles, vendor, scripts, index, watch, startExpress, startLiveReload, open);
 });
 
 
@@ -87,6 +87,27 @@ function images(cb) {
       .pipe($.imagemin())
       .pipe($.size({ showFiles: true }))
       .pipe(gulp.dest(cfg.files.images.dest))
+
+      .on('end', cb || callback)
+      .on('error', $.util.log);
+  });
+}
+
+
+function vendorstyles(cb) {
+  clean('vendor*.css', function() {
+    $.util.log('Rebuilding vendor styles ---');
+
+    gulp.src(cfg.files.styles.vendor.all)
+      .pipe($.plumber())
+
+      .pipe($.concat(cfg.files.styles.vendor.name))
+      .pipe($.if(DEV, $.streamify($.rev())))
+      // .pipe($.csso())
+      // .pipe($.if(PROD, $.rename({ext: '.min.css'})))  
+
+      .pipe($.size({ showFiles: true }))
+      .pipe(gulp.dest(cfg.destDir))
 
       .on('end', cb || callback)
       .on('error', $.util.log);
@@ -128,10 +149,10 @@ function vendor(cb) {
         .pipe(source(cfg.files.js.vendor.name))
 
         .pipe($.if(DEV, $.streamify($.rev())))
-        .pipe($.streamify($.ngmin()))
-        .pipe($.streamify($.uglify({ mangle: false })))
+        // .pipe($.streamify($.ngmin()))
+        // .pipe($.streamify($.uglify({ mangle: false })))
         .pipe($.streamify($.size({ showFiles: true })))
-        .pipe($.rename({ext: '.min.js'}))  
+        // .pipe($.rename({ext: '.min.js'}))  
         .pipe(gulp.dest(cfg.destDir))
 
         .on('end', cb || callback)
@@ -202,6 +223,7 @@ function index(cb) {
   gulp.src(cfg.files.html.source)
     .pipe($.plumber())
 
+    .pipe(inject(cfg.files.styles.vendor.output, cfg.files.styles.vendor.tag))
     .pipe(inject(cfg.files.styles.app.output, cfg.files.styles.app.tag))
     .pipe(inject(cfg.files.js.app.output, cfg.files.js.app.tag))
     .pipe(inject(cfg.files.js.vendor.output, cfg.files.js.vendor.tag))

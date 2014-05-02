@@ -67,7 +67,8 @@ module.exports = {
             vendor: {
                 name: 'vendor.css',
                 output: './public/vendor*.css',
-                tag: 'vendor-style:css'
+                tag: 'vendor-style:css',
+                all: ['./bower_components/kendo-ui/styles/web/kendo.common.core.min.css', './bower_components/kendo-ui/styles/web/kendo.default.min.css']
             },
 
             all: './src/scss/**/*.scss',
