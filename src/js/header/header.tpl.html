@@ -13,6 +13,21 @@
       <li class="divider-vertical"></li>
       <li><a href="#">spinner</a></li>
     </ul>
-    <login-toolbar ></login-toolbar>
+      <ul class="nav pull-right">
+          <li class="divider-vertical"></li>
+          <li>
+              <a href="#" ng-show="loggedIn">{{currentUser.username}}</a>
+          </li>
+          <li ng-show="loggedIn" class="logout">
+              <form class="navbar-form">
+                  <button class="btn logout" ng-click="logout()">Log out</button>
+              </form>
+          </li>
+          <li ng-hide="loggedIn" class="login">
+              <form class="navbar-form">
+                  <button class="btn login" ng-click="login()">Log in</button>
+              </form>
+          </li>
+      </ul>
   </div>
 </div>

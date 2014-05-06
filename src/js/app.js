@@ -1,28 +1,46 @@
 'strict';
 
 
+require('jquery');
 require('angular');
 require('angular-route');
 require('angular-bootstrap');
+//require('kendo-ui');
+//require('angular-kendo');
 
-require('../common/security/index.js');
+// common
+require('../common/services/all');
+
+// views
+require('./login/login')
+require('./header/header')
+require('./main/main')
+require('./footer/footer')
 
 
-angular.module('app', [ 
+angular.module('app', [
 
-	"ngRoute", 'ui.bootstrap',
+	"ngRoute",
+    'ui.bootstrap',
 
-	// Ats module dependencies
-	'security',
+    'ats.services',
 
-    // Dependencies
-    require('./header/header.js').name,
-    require('./footer/footer.js').name,
-    require('./main/main.js').name])
+    'app.header',
+    'app.main',
+    'app.footer'])
 
-    // Config
-    .config(require('./routes'))
+    .constant('cfg', {
+        endpoint: 'http://sportsbook-dev.amelco.co.uk/sb-backoffice/v1/api/',
+        ws: 'ws://sportsbook-dev.amelco.co.uk:9998/websocket',
+        appName: 'Back Office'
+    })
 
-    .controller('AppCtrl', ['$scope', function ($scope) {
-       
-    }]);
+    .controller('AppCtrl', ['$rootScope', function ($rootScope) {
+
+
+
+    }])
+
+
+    .config(require('./http'))
+    .config(require('./routes'));

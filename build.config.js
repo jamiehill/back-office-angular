@@ -74,9 +74,9 @@ module.exports = {
                 output: './public/vendor*.css',
                 tag: 'vendor-style:css',
                 all: [
-                    './bower_components/kendo-ui/styles/web/kendo.common.core.min.css',
-                    './bower_components/kendo-ui/styles/web/kendo.default.min.css',
                     './bower_components/bootstrap/dist/css/bootstrap.min.css'
+//                    './bower_components/kendo-ui/styles/web/kendo.common.core.min.css',
+//                    './bower_components/kendo-ui/styles/web/kendo.bootstrap.min.css'
                 ]
             },
 

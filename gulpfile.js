@@ -139,7 +139,8 @@ function styles(cb) {
     gulp.src(cfg.files.styles.all)
       .pipe($.plumber())
       .pipe($.sass({
-          includePaths: neat.with(cfg.scssDir),
+//          includePaths: neat.with(cfg.scssDir),
+          includePaths: cfg.scssDir,
           outputStyle: 'expanded',
           sourceComments: 'map'
       }))

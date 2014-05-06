@@ -1,46 +1,46 @@
-@import 'boilerplate/all';
-@include reset;
-
-@import 'helpers/grid';
-
-@import 'style_guide/palette';
-@import 'style_guide/fonts';
-@import 'style_guide/type';
-
-@import 'app/container';
-@import 'app/header';
-@import 'app/main';
-@import 'app/footer';
-
-@import 'tags/document';
-@import 'tags/edits';
-@import 'tags/embedded';
-@import 'tags/forms';
-@import 'tags/grouping';
-@import 'tags/interactive';
-@import 'tags/sections';
-@import 'tags/tabular';
-@import 'tags/text';
-
-@import 'specific';
-@import 'temporary';
-
-
-/*
- * Base structure
- */
-
-/* Move down content because we have a fixed navbar that is 50px tall */
-body {
-  padding-top: 50px;
-}
-
-
-/*
- * Global add-ons
- */
-
-.sub-header {
-  padding-bottom: 10px;
-  border-bottom: 1px solid #eee;
-}
+//@import 'boilerplate/all';
+//@include reset;
+//
+//@import 'helpers/grid';
+//
+//@import 'style_guide/palette';
+//@import 'style_guide/fonts';
+//@import 'style_guide/type';
+//
+//@import 'app/container';
+//@import 'app/header';
+//@import 'app/main';
+//@import 'app/footer';
+//
+//@import 'tags/document';
+//@import 'tags/edits';
+//@import 'tags/embedded';
+//@import 'tags/forms';
+//@import 'tags/grouping';
+//@import 'tags/interactive';
+//@import 'tags/sections';
+//@import 'tags/tabular';
+//@import 'tags/text';
+//
+//@import 'specific';
+//@import 'temporary';
+//
+//
+///*
+// * Base structure
+// */
+//
+///* Move down content because we have a fixed navbar that is 50px tall */
+//body {
+//  padding-top: 50px;
+//}
+//
+//
+///*
+// * Global add-ons
+// */
+//
+//.sub-header {
+//  padding-bottom: 10px;
+//  border-bottom: 1px solid #eee;
+//}
