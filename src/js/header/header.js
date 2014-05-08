@@ -11,6 +11,9 @@ module.exports = angular.module('app.header', [])
         };
     })
 
+    /**
+     * 
+     */
     // Header controller
     .controller('HeaderCtrl', ['$scope', 'cfg', 'sessionService', 'socketService', function ($scope, cfg, sessionService, socketService) {
 
