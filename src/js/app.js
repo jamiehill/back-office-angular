@@ -1,10 +1,10 @@
 'strict';
 
 
-require('jquery');
-require('angular');
-require('angular-route');
-require('angular-bootstrap');
+// require('jquery');
+// require('angular');
+// require('angular-route');
+// require('angular-bootstrap');
 //require('kendo-ui');
 //require('angular-kendo');
 
@@ -27,7 +27,8 @@ angular.module('app', [
 
     'app.header',
     'app.main',
-    'app.footer'])
+    'app.footer',
+    'app.templates'])
 
     .constant('cfg', {
         endpoint: 'http://sportsbook-dev.amelco.co.uk/sb-backoffice/v1/api/',
@@ -36,9 +37,7 @@ angular.module('app', [
     })
 
     .controller('AppCtrl', ['$rootScope', function ($rootScope) {
-
-
-
+        $scope.name = 'Back Office';
     }])
 
 

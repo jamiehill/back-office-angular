@@ -22,8 +22,10 @@ module.exports = {
 
     bowerComponents: [],
     browserify: {
+        entries:"./src/js/app.js",
         debug: true,
-        insertGlobals: true
+        insertGlobals: true,
+        transforms: ['partialify','deamdify']
     },
 
     files: {
@@ -45,8 +47,14 @@ module.exports = {
                 tag: 'vendor:js'
             },
 
+            template: {
+                name: 'template.js',
+                output: './public/template*.js',
+                tag: 'template:js'
+            },
+
             noop: './lib/noop.js',
-            all: [ './src/js/**/*.js', './src/common/**/*.js', '!./src/js/**/*.spec.js' ],
+            all: [ './src/**/*.js', './src/**/*.js', '!./src/**/*.spec.js' ],
             output: './public/**/*.js'
         },
 
@@ -56,7 +64,16 @@ module.exports = {
             source: './src/index.html',
             output: './public/index.html',
             title: 'Ats Back Office',
-            tpl: './src/js/**/*.tpl.html'
+        },
+
+
+        tpl: {
+            name: 'template.js',
+            all: './src/**/*.tpl.html',
+            opts: {
+                module: 'app.templates',
+                standalone: true
+            }
         },
 
 

@@ -22,23 +22,10 @@
  */
 
 
-var gulp        = require('gulp')
-  , express     = require('express')
-  , lrServer    = require('tiny-lr')()
-  , livereload  = require('connect-livereload')
-  , watchify    = require('watchify')
-  , path        = require('path')
-  , connect     = require('gulp-connect')
+var time        = require('time-require')
+  , gulp        = require('gulp')
   , packager    = require('./lib/packager')({debug: true})
-  , $           = require('gulp-load-plugins')({ camelize: true, lazy: false })
-  , source      = require('vinyl-source-stream')
-  , async       = require('async')
-  , chalk       = require('chalk')
-  , lr          = require('tiny-lr')()
-  , watcher     = require('gulp-watch')
-  , gulpReload  = require('gulp-livereload')
-  , neat        = require('node-neat')
-  , stylish     = require('jshint-stylish');
+  , $           = require('gulp-load-plugins')({ camelize: true, lazy: false });
 
 
 /*
@@ -58,7 +45,8 @@ var PROD   = ($.util.env.type === 'production')
 
 
 gulp.task('default', function () {
-  chain(images, vendorstyles, styles, vendor, lint, scripts, index, watch, startExpress, startLiveReload, open);
+  clean();
+  chain(images, styles, vendor, lint, scripts, templates, index, watch, startExpress);
 });
 
 
@@ -67,41 +55,50 @@ gulp.task('default', function () {
  */
 
 
+/**
+ * Cleans the specified location and/or file/s
+ * @param string path path to folder/files to clean
+ * @param function cb async sequencial callback method
+ */
 function clean(p, cb) {
-  var pp = (p === undefined) ? "/*" : p
-    , dest = path.join('./', cfg.destDir, pp);
-      $.util.log('Cleaning: ' + chalk.blue(dest));
+  var path  = (p === undefined) ? "/*" : p,
+      files = $.path.join('./', cfg.destDir, path);
+    
+  $.util.log('Cleaning: ' + $.chalk.blue(files));
+  gulp.src(files, {read: false})
+    .pipe($.clean({force: true}))
 
-  gulp.src(dest, {read: false})
-    .pipe($.rimraf({ force: true }));
-
-  (cb || callback)();
+    .on('end', cb || callback)
+    .on('error', $.util.log);
 }
 
 
 /**
  * JSHint the javascript
+ * @param function cb async sequencial callback method
  */
 function lint(cb) {
-    return gulp.src(cfg.files.js.all)
-      .pipe($.jshint())
-      // .pipe($.jshint.reporter('default'))
-      .pipe($.jshint.reporter(stylish))
-      // .pipe($.jshint.reporter('fail'))
+  gulp.src(cfg.files.js.all)
 
-      .on('end', cb || callback)
-      .on('error', $.util.log);
+    .pipe($.jshint())
+    .pipe($.jshint.reporter($.jshintStylish))
+
+    .on('end', cb || callback)
+    .on('error', $.util.log);
 }
 
 
+/**
+ * Copies and minifies all images
+ * @param function cb async sequencial callback method
+ */
 function images(cb) {
   clean('img/*', function() {
     $.util.log('Minifying images ---');
 
     gulp.src(cfg.files.images.all)
-      .pipe($.plumber())
-
       .pipe($.imagemin())
+
       .pipe($.size({ showFiles: true }))
       .pipe(gulp.dest(cfg.files.images.dest))
 
@@ -111,43 +108,125 @@ function images(cb) {
 }
 
 
-function vendorstyles(cb) {
-  clean('vendor*.css', function() {
-    $.util.log('Rebuilding vendor styles ---');
-
-    gulp.src(cfg.files.styles.vendor.all)
-      .pipe($.plumber())
-
-      .pipe($.concat(cfg.files.styles.vendor.name))
-      .pipe($.if(DEV, $.streamify($.rev())))
-      // .pipe($.csso())
-      // .pipe($.if(PROD, $.rename({ext: '.min.css'})))  
-
-      .pipe($.size({ showFiles: true }))
-      .pipe(gulp.dest(cfg.destDir))
-
-      .on('end', cb || callback)
-      .on('error', $.util.log);
-  });
-}
-
-
+/**
+ * Compiles all scss/sass styles to app.css
+ * @param function cb async sequencial callback method
+ */
 function styles(cb) {
   clean('style*.css', function() {
     $.util.log('Rebuilding application styles ---');
 
     gulp.src(cfg.files.styles.all)
-      .pipe($.plumber())
       .pipe($.sass({
-//          includePaths: neat.with(cfg.scssDir),
           includePaths: cfg.scssDir,
           outputStyle: 'expanded',
           sourceComments: 'map'
       }))
 
-      .pipe($.if(DEV, $.streamify($.rev())))
+      .pipe($.if(PROD, $.rename({extname: '.min.css'})))
       .pipe($.if(PROD, $.csso()))
-      // .pipe($.if(PROD, $.rename({ext: '.min.css'})))  
+
+      .pipe($.autoprefixer('last 2 versions', {map: false }))
+      .pipe($.size({ showFiles: true }))
+      .pipe(gulp.dest(cfg.destDir))
+
+      .on('end', cb || callback)
+      .on('error', $.util.log);
+  });
+}
+
+
+/**
+ * Walks all bower_components' files to output
+ * vendor.js, vendor.css and any associated fonts
+ * @param function cb async sequencial callback method
+ */
+function vendor(cb) {
+
+  var jsfilter = $.filter('**/*.js'),
+      cssfilter = $.filter('**/*.css'),
+      assetsfilter = $.filter(['!**/*.js', '!**/*.css', '!**/*.scss']);
+
+  clean('vendor*.*', function() {
+    $.bowerFiles()
+      .pipe($.plumber())
+
+      // vendor js
+      .pipe(jsfilter)
+      .pipe($.concat(cfg.files.js.vendor.name))
+      .pipe($.streamify($.ngmin()))
+      .pipe($.uglify({ mangle: false }))
+      // .pipe($.rename({extname: '.min.js'}))
+
+      .pipe($.size({ showFiles: true }))  
+      .pipe(gulp.dest(cfg.destDir))
+      .pipe(jsfilter.restore())
+
+      // vendor css
+      .pipe(cssfilter)
+      .pipe($.csso())
+      .pipe($.concat(cfg.files.styles.vendor.name))
+      .pipe($.size({ showFiles: true }))
+      .pipe(gulp.dest(cfg.destDir))
+      .pipe(cssfilter.restore())
+
+      // Fonts
+      .pipe($.rename(function(path) {
+          if (path.dirname.indexOf('fonts')) {
+              path.dirname = '/fonts'
+          }
+      }))
+      .pipe(gulp.dest(cfg.destDir))
+
+      // vendor assets
+      // .pipe(assetsFilter)
+      // .pipe(gulp.dest(cfg.destDir))
+      // .pipe(assetsFilter.restore())
+
+      .on('end', cb || callback)
+      .on('error', $.util.log)
+  });
+}
+
+
+/**
+ * [scripts description]
+ * @param  {Function} cb [description]
+ * @return {[type]}      [description]
+ */
+function scripts(cb) {
+  clean('app*.js', function() {   
+    var bundle = $.browserify(cfg.files.js.app.source)
+      .transform('partialify');
+    
+    bundle.bundle({standalone: 'noscope'})
+      .pipe($.vinylSourceStream(cfg.files.js.app.name))
+
+      .pipe($.if(PROD, $.streamify($.ngmin())))
+      .pipe($.if(PROD, $.streamify($.uglify({ mangle: false }))))
+      .pipe($.if(PROD, $.rename({extname: '.min.js'})))
+      
+      .pipe($.streamify($.size({ showFiles: true })))
+      .pipe(gulp.dest(cfg.destDir))
+
+      .on('end', cb || callback)
+      .on('error', $.util.log);
+  });
+}
+
+
+/**
+ * Concatenates all application js files into app.js
+ * @param function cb async sequencial callback method
+ */
+function scriptsNonBrowserify(cb) {
+  clean('vendor*.*', function() {
+    gulp.src(cfg.files.js.all)
+      .pipe($.concat(cfg.files.js.app.name))
+
+      .pipe($.if(PROD, $.streamify($.ngmin())))
+      .pipe($.if(PROD, $.uglify({ mangle: false })))
+      .pipe($.if(PROD, $.rename({extname: '.min.js'})))
 
       .pipe($.size({ showFiles: true }))
       .pipe(gulp.dest(cfg.destDir))
@@ -158,72 +237,18 @@ function styles(cb) {
 }
 
 
-function vendor(cb) {
-  var bundler = watchify(cfg.files.js.noop)
-    .transform('deamdify')
-    
-    .on('update', function(){invoke(rebundleVendor)})
-    .on('error', $.util.log);
-  
-  function rebundleVendor() {
-    clean('vendor*.js', function() {
-      return bundler.bundle(cfg.browserify)
-        .pipe(source(cfg.files.js.vendor.name))
+/**
+ * [templates description]
+ * @param function cb async sequencial callback method
+ */
+function templates(cb) {
+  clean('template*.js', function() {
+    gulp.src(cfg.files.tpl.all)
+      .pipe($.minifyHtml({ quotes: true }))
+      .pipe($.angularTemplatecache(cfg.files.tpl.name, cfg.files.tpl.opts))
 
-        .pipe($.if(DEV, $.streamify($.rev())))
-        // .pipe($.streamify($.ngmin()))
-        // .pipe($.streamify($.uglify({ mangle: false })))
-        .pipe($.streamify($.size({ showFiles: true })))
-        // .pipe($.rename({ext: '.min.js'}))  
-        .pipe(gulp.dest(cfg.destDir))
-
-        .on('end', cb || callback)
-        .on('error', $.util.log);
-    });
-  }
-
-  packager.require(bundler);
-  rebundleVendor();
-}
-
-
-function scripts(cb) {
-    var bundler = watchify(cfg.files.js.app.source)
-        .transform('partialify')
-        .transform('deamdify')
-        
-        .on('update', function(){invoke(rebundleScripts)})
-        .on('error', $.util.log);
-
-  function rebundleScripts() {
-    clean('app*.js', function() {
-      return bundler.bundle(cfg.browserify)
-        .pipe(source(cfg.files.js.app.name))
-
-        .pipe($.if(DEV, $.streamify($.rev())))
-        .pipe($.if(PROD, $.streamify($.ngmin())))
-        .pipe($.if(PROD, $.streamify($.uglify({ mangle: false }))))
-        .pipe($.streamify($.size({ showFiles: true })))
-        .pipe($.rename({ext: '.min.js'}))  
-        .pipe(gulp.dest(cfg.destDir))
-
-        .on('end', cb || callback)
-        .on('error', $.util.log);
-    });
-  }
-
-  packager.external(bundler);
-  rebundleScripts();
-}
-
-
-function fonts(cb) {
-  clean(cfg.files.fonts.icons, function() {
-    $.util.log('Copying fonts ---');
-
-    gulp.src(cfg.files.fonts.all)
-      .pipe($.plumber())
-      .pipe(gulp.dest(cfg.files.fonts.dest))
+      .pipe($.size({ showFiles: true }))
+      .pipe(gulp.dest(cfg.destDir))
 
       .on('end', cb || callback)
       .on('error', $.util.log);
@@ -231,31 +256,28 @@ function fonts(cb) {
 }
 
 
+/**
+ * Constructs index.html, injecting pertinant dependecies
+ * @param function cb async sequencial callback method
+ */
 function index(cb) {
-  function inject(glob, tag) {
-    $.util.log('Injecting: ' + chalk.blue(glob + ' - ' + tag));
-
-    return $.inject(gulp.src(glob, {read: false}), {
-      starttag: '<!-- inject:'+tag+' -->',
-      ignorePath:'/public/',
-      addRootSlash: false
-    });
-  }
-
   gulp.src(cfg.files.html.source)
-    .pipe($.plumber())
-
     .pipe(inject(cfg.files.styles.vendor.output, cfg.files.styles.vendor.tag))
     .pipe(inject(cfg.files.styles.app.output, cfg.files.styles.app.tag))
     .pipe(inject(cfg.files.js.app.output, cfg.files.js.app.tag))
     .pipe(inject(cfg.files.js.vendor.output, cfg.files.js.vendor.tag))
-
+    .pipe(inject(cfg.files.js.template.output, cfg.files.js.template.tag))
     .pipe(gulp.dest(cfg.destDir))
+
     .on('end', cb || callback)
     .on('error', $.util.log); 
 }
 
 
+/**
+ * [watch description]
+ * @param function cb async sequencial callback method
+ */
 function watch(cb) {
   gulp.watch(cfg.files.js.output, function(event){
     chainReload([index], event.path);
@@ -266,7 +288,7 @@ function watch(cb) {
   });
 
   gulp.watch(cfg.files.html.output, function(event){
-    // $.util.log(chalk.bgMagenta(' Reload: ' + event.path + " ------- "));
+    // $.util.log($.chalk.bgMagenta(' Reload: ' + event.path + " ------- "));
     // server.changed(event.path);
   });
 
@@ -288,42 +310,67 @@ function watch(cb) {
 
 
 function startExpress(cb) {
-  var app = express();
-  app.use(livereload(cfg.server.opts.livereload));
-  app.use(express.static(cfg.destDir));
-  app.listen(cfg.server.opts.port, function(){
-    $.util.log(chalk.yellow('Express listening on port:', cfg.server.opts.port));
-  });
+  var app = $.connect()
+    .use($.connectLivereload({ port: 35729 }))
+    .use($.connect.static(cfg.destDir))
+    .use($.connect.directory(cfg.destDir));
+
+  gulp.server = $.http.createServer(app)
+    .listen(9000)
+    .on('listening', function() {
+      $.util.log($.chalk.yellow('Connect listening on port:', 9000));
+    })
+
+  $.opn('http://localhost:9000');
   cb();
+
+
+  // var app = $.express();
+  // app.use($.livereload(cfg.server.opts.livereload));
+  // app.use($.express.static(cfg.destDir));
+  // app.listen(cfg.server.opts.port, function(){
+  //   $.util.log($.chalk.yellow('Express listening on port:', cfg.server.opts.port));
+  // });
+  // cb();
 }
 
 
 function startLiveReload(cb) {
-  lrServer.listen(cfg.server.opts.livereload.port, function(err) {
-    if (err) return $.util.log($.util.colors.red(err));
-    $.util.log(chalk.yellow('Livereload heard something!'));
-  });
+  // $.tingLr.listen(cfg.server.opts.livereload.port, function(err) {
+  //   if (err) return $.util.log($.util.colors.red(err));
+  //   $.util.log($.chalk.yellow('Livereload heard something!'));
+  // });
   cb();
+}
+
+function inject(glob, tag) {
+  $.util.log('Injecting: ' + $.chalk.blue(glob + ' - ' + tag));
+
+  return $.inject(gulp.src(glob, {read: false}), {
+    starttag: '<!-- inject:'+tag+' -->',
+    ignorePath:'/public/',
+    addRootSlash: false
+  });
 }
 
 
 function open(cb){
-      gulp.src(cfg.files.html.output)
-          .pipe($.open("<%file.path%>",{url: cfg.server.url}));
-      cb();
-  }
+  gulp.src(cfg.files.html.output)
+    .pipe($.open("<%file.path%>",{url: cfg.server.url}));
+  cb();
+}
 
 
 function chain() {
   var tasks = Array.prototype.slice.call(arguments);
-  async.eachSeries(tasks, invoke);
+  $.async.eachSeries(tasks, invoke);
 }
 
 
 function chainReload() {
   var args = Array.prototype.slice.call(arguments)
-  async.eachSeries(args[0], invoke, function(){
-    $.util.log(chalk.bgMagenta(' Reload: ' + args[1] + " ------- "));
+  $.async.eachSeries(args[0], invoke, function(){
+    $.util.log($.chalk.bgMagenta(' Reload: ' + args[1] + " ------- "));
     server.changed(args[1]);
   });
 }
@@ -331,12 +378,33 @@ function chainReload() {
 
 function invoke(func, cb) {
   var name = func.name.charAt(0).toUpperCase() + func.name.slice(1);
-  $.util.log('Invoke: ' + chalk.red(name + ' -------------------'));
+  $.util.log('Invoke: ' + $.chalk.red(name + ' -------------------'));
 
   func.apply(this, [cb || callback]);
 }
 
 
 function callback() {
-  $.util.log(chalk.green('callback'));
+  $.util.log($.chalk.green('callback'));
+}
+
+function cssResolve(file, cb) {
+  var bowerDir = packager.getInstallDirectory(),
+      relativePath = $.path.dirname($.path.relative(bowerDir, file.path)),
+
+      contents = file.contents.toString();
+      contents = contents.replace(/url\([^)]*\)/g, function(inMatch){
+        // find the url path, ignore quotes in url string
+        var matches = /url\s*\(\s*(('([^']*)')|("([^"]*)")|([^'"]*))\s*\)/.exec(inMatch);
+        var urlPath = matches[3] || matches[5] || matches[6];
+
+        // Don't modify data and http(s) urls
+        if (/^data:/.test(url) || /^http(:?s)?:/.test(url)) {
+          return "url(" + url + ")";
+        }
+        return "url(" + $.path.join($.path.relative(settings.build.bower, settings.build.app), settings.build.bower, relativePath, url) + ")";
+      });
+
+  file.contents = new Buffer(contents);
+  cb(null, file);
 }
