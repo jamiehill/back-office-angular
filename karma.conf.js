@@ -5,16 +5,16 @@ module.exports = function(config) {
   config.set({
 
     basePath: '',
-    frameworks: ['jasmine', 'browserify'],
+    frameworks: ['jasmine', 'browserify', 'chai-sinon'],
     files: [
-        // 'bower_components/jquery/jquery.js',
+        'bower_components/jquery/jquery.js',
         'bower_components/angular/angular.js',
-        'bower_components/angular-mocks/angular-mocks.js',
+        'bower_components/angular-route/angular-route.js',
+        'bower_components/angular-bootstrap/ui-bootstrap.js',
+        'bower_components/angular-mocks/angular-mocks.js'
     ],
     exclude: [],
     browserify: {
-      // extensions: ['.coffee'],
-      // ignore: [],
       transform: ['partialify'],
       debug: false,
       // noParse: ['jquery'],
@@ -35,7 +35,9 @@ module.exports = function(config) {
 
     plugins: [
         'karma-jasmine',
+        'karma-chai-sinon',
         'karma-phantomjs-launcher',
+        'karma-chrome-launcher',
         'karma-browserifast',
         'karma-spec-reporter'
     ],
@@ -45,7 +47,7 @@ module.exports = function(config) {
     reporters: ['spec'],
     port: 9876,
     colors: true,
-    logLevel: config.LOG_DEBUG,
+    logLevel: config.LOG_INFO,
     autoWatch: true,
     browsers: ['PhantomJS'],
     singleRun: false

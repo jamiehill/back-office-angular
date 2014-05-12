@@ -1,11 +1,20 @@
+xdescribe("Module: app.header", function() {
+	var scope, controller;
 
-describe("header.js", function() {
-  var module, scope, ctrl;
+  // Setup/teardown ------------------------------------------
 
-  beforeEach(module('app'));
+  beforeEach(function () {
+  	window.module('app.header');
+    inject(function($rootScope, $controller) {
+        scope       = $rootScope.$new();
+        controller  = $controller("HeaderCtrl", { $scope: scope });
+    });
+	});
 
-  it('should have a HeaderCtrl controller', function() {
-    expect(myApp).not.toBe(null);
-  });
+  // Specs ----------------------------------------------------
+
+  it('should have a HeaderCtrl initialised', inject(function(HeaderCtrl) {
+  	expect(controller).toBeDefined();
+	}));
 
 });

@@ -19,7 +19,7 @@ module.exports = angular.module('app.header', [])
 
         var socket;
 
-        $scope.projectName = cfg.appName;
+        $scope.projectName = cfg.appname;
 
         $scope.currentUser = {username:'test1', password:'test1'};
         $scope.authError = null;

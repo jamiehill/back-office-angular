@@ -5,8 +5,8 @@ module.exports = function($routeProvider) {
 
     // Send everything to main
     .when('/', {
-        controller: require('./main/main.js'),
-        template: require('./main/main.tpl.html')
+        controller: require('../main/main.js'),
+        template: require('..//main/main.tpl.html')
     })
 
     .otherwise('/');
