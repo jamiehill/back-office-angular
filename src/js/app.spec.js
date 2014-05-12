@@ -1,5 +1,3 @@
-var app = require('./app');
-
 describe("app.js", function() {
   var module;
 
@@ -7,59 +5,33 @@ describe("app.js", function() {
     module = angular.module("app");
   });
 
-  it("should be registered ...", function() {
+  it("should register module::app", function() {
     expect(module.name).toBe('app');
   });
 
-  it('should have an AppCtrl controller', 
-    inject(function($rootScope, $controller) {
-
-    var scope = $rootScope.$new();
-    var ctrl = $controller(AppCtrl, {$scope: scope }); 
-
-    expect(ctrl).not.to.equal(null);
-  }));
 
   describe('should have dependencies:', function() {
     var deps;
     var hasModule = function(m) {
       return deps.indexOf(m) >= 0;
     };
+    var expectModule = function(dep) {
+      it(dep, function() {
+        expect(hasModule(dep)).toBe(true);
+      });
+    };
+
     beforeEach(function() {
       deps = module.value('app').requires;
     });
 
-    it("'ngRoute'", function() {
-      expect(hasModule('ngRoute')).toBe(true);
-    });
-
-    it("'ui.bootstrap'", function() {
-      expect(hasModule('ui.bootstrap')).toBe(true);
-    });
-
-    it("'ats.services'", function() {
-      expect(hasModule('ats.services')).toBe(true);
-    });
-
-    it("'app.header'", function() {
-      expect(hasModule('app.header')).toBe(true);
-    });
-
-    it("'app.main'", function() {
-      expect(hasModule('app.main')).toBe(true);
-    });
-
-    it("'app.footer'", function() {
-      expect(hasModule('app.footer')).toBe(true);
-    });
-
-    it("'app.templates'", function() {
-      expect(hasModule('app.templates')).toBe(true);
-    });
-
-  });
-
-  describe('should have constants:', function() {
+    expectModule('ngRoute');
+    expectModule('ui.bootstrap');
+    expectModule('ui.bootstrap');
+    expectModule('app.header');
+    expectModule('app.main');
+    expectModule('app.footer');
+    expectModule('app.templates');
 
   });
 

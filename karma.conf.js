@@ -7,7 +7,7 @@ module.exports = function(config) {
     basePath: '',
     frameworks: ['jasmine', 'browserify'],
     files: [
-        'bower_components/jquery/jquery.js',
+        // 'bower_components/jquery/jquery.js',
         'bower_components/angular/angular.js',
         'bower_components/angular-mocks/angular-mocks.js',
     ],
@@ -45,7 +45,7 @@ module.exports = function(config) {
     reporters: ['spec'],
     port: 9876,
     colors: true,
-    logLevel: config.LOG_INFO,
+    logLevel: config.LOG_DEBUG,
     autoWatch: true,
     browsers: ['PhantomJS'],
     singleRun: false
