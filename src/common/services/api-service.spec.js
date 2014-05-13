@@ -1,8 +1,8 @@
 describe("Services: ats.services.api-service", function() {
 	var expectMethod = function(meth) {
-	  it("should implement '"+meth+"' method", inject(['apiService',function(service) {
-	     expect(service[meth]).toBeDefined();
-	 }]));
+		it("should implement '"+meth+"' method", inject(['apiService',function(service) {
+			expect(service[meth]).toBeDefined();
+		}]));
 	};
 
 
@@ -10,14 +10,14 @@ describe("Services: ats.services.api-service", function() {
 
 
 	beforeEach(window.module('ats.services.api-service'));
-	
-	
-	// Specs ----------------------------------------------------
-	
 
-  it('should contain an apiService service', inject(function(apiService) {
-    expect(apiService).toBeDefined();
-  }));
+
+	// Specs ----------------------------------------------------
+
+
+	it('should contain an apiService service', inject(function(apiService) {
+		expect(apiService).toBeDefined();
+	}));
 
 	describe("should implement methods:", function(){
 		expectMethod('login');
