@@ -1,7 +1,7 @@
 describe("Services: ats.services.session-service", function() {
 	var $sessionService, $httpBackend, win;
 	var success = sinon.spy(),
-	failure = sinon.spy();
+					failure = sinon.spy();
 
 
 	// expects a method to be defined on the service
