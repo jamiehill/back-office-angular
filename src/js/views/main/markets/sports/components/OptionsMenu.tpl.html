@@ -1,0 +1,5 @@
+<ul class="menu menuOpen">
+    <% _.each(items, function(item) { %>
+        <li><a data-marketId="<%= id %>" class="<%= item.class %>"><%= item.title %></a></li>
+    <% }); %>
+</ul>

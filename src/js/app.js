@@ -1,39 +1,15 @@
-'strict';
+var MainView = require('./views/MainView');
 
 
-require('../common/services/all');
-require('./login/login')
-require('./header/header')
-require('./main/main')
-require('./footer/footer')
+// Creates a new Marionette application
+var App = Marionette.Application();
 
+// Set up basic paths
+App.root = 'assets/javascripts/';
 
-angular.module('app', [
+// Adds any methods to be run after the app was initialized.
+App.addInitializer(function () {
+    App.show(new MainView());
+});
 
-	"ngRoute",
-    'ui.bootstrap',
-
-    'ats.services',
-
-    'app.header',
-    'app.main',
-    'app.footer',])
-
-    .constant('cfg', {
-        appname: 'Back Office',
-        endpoint: 'http://sportsbook-dev.amelco.co.uk/sb-backoffice/v1/api/',
-        ws: 'ws://sportsbook-dev.amelco.co.uk:9998/websocket'
-    })
-
-    .controller('AppCtrl', ['$rootScope', 'cfg', , function ($rootScope, cfg) {
-        $scope.appname = cfg.appname;
-        $scope.endpoint = cfg.endpoint;
-        $scope.ws = cfg.ws;
-    }])
-
-
-    .config(require('./config/http'))
-    .config(require('./config/routes'));
-
-
-
+App.start();
