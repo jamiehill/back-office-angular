@@ -23,8 +23,8 @@ module.exports = {
     bower: [
         {name:'jquery', expose:'jquery'},
         {name:'jquery-pubsub'},
-        {name:'backbone', expose:'backbone'},
         {name:'underscore', expose:'underscore'},
+        {name:'backbone', expose:'backbone'},
         {name:'marionette', expose:'marionette'},
         {name:'w2ui'}
     ],

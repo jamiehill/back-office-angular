@@ -1,6 +1,8 @@
-var gulp = require('gulp')
-packager = require('./src/common/build/bower/packager')({debug:true})
-    , $ = require('./src/common/build/gulp/load-plugins')({ camelize: true, lazy: false });
+var gulp = require('gulp'),
+    browserify = require('gulp-browserify'),
+    packager = require('./src/common/build/bower/packager')({debug:true}),
+    $ = require('./src/common/build/gulp/load-plugins')({ camelize: true, lazy: false }),
+    _ = require('lodash');
 
 
 /*
@@ -11,6 +13,7 @@ packager = require('./src/common/build/bower/packager')({debug:true})
 var PROD = ($.util.env.type === 'production')
     , DEV = (PROD === false)
     , cfg = require('./build.config.js')
+    , json = require('./package.json')
     , server = $.livereload();
 
 
@@ -170,14 +173,37 @@ function vendor(cb) {
  */
 function vendor2(cb) {
     clean('vendor*.*', function () {
-        var bundle = $.browserify(cfg.files.js.noop)
-            .transform('partialify')
-            .transform('browserify-shim');
+//        var bundle = browserify(cfg.files.js.noop)
+//            .transform('partialify')
+//            .transform('browserify-shim');
+//
+//        packager.require(bundle, cfg.bower);
+//        bundle.bundle({debug: true, standalone:"backoffice"})
+//            .pipe($.vinylSourceStream(cfg.files.js.vendor.name))
+//
+//            .pipe($.if(PROD, $.streamify($.uglify({ mangle: false }))))
+//            .pipe($.if(PROD, $.rename({extname: '.min.js'})))
+//
+//            .pipe($.streamify($.size({ showFiles: true })))
+//            .pipe(gulp.dest(cfg.destDir))
+//
+//            .on('end', cb || callback)
+//            .on('error', $.util.log);
 
-        packager.require(bundle, cfg.bower);
-        bundle.bundle({debug: true, standalone:"backoffice"})
-            .pipe($.vinylSourceStream(cfg.files.js.vendor.name))
 
+
+        gulp.src(cfg.files.js.noop)
+            .pipe(browserify({debug: true}))
+            .on('prebundle', function(bundle){
+                _.each(json.browser, function(cfg){
+                    var expose = _.has(cfg, 'expose');
+                    if (expose) bundle.require(cfg.name, cfg.expose);
+                    else        bundle.require(cfg.name);
+
+                    $.util.log($.util.colors.green("Name :: "+cfg.name+" -"), $.util.colors.red("Expose - "+cfg.expose));
+                });
+            })
+            .pipe($.rename(cfg.files.js.vendor.name))
             .pipe($.if(PROD, $.streamify($.uglify({ mangle: false }))))
             .pipe($.if(PROD, $.rename({extname: '.min.js'})))
 
@@ -197,14 +223,34 @@ function vendor2(cb) {
  */
 function scripts(cb) {
     clean('app*.js', function () {
-        var bundle = $.browserify(cfg.files.js.app.source)
-            .transform('partialify')
-            .transform('browserify-shim');
+//        var bundle = browserify(cfg.files.js.app.source)
+//            .transform('partialify')
+//            .transform('browserify-shim');
+//
+//        packager.external(bundle, cfg.bower);
+//        bundle.bundle({debug: true, standalone: 'noscope'})
+//            .pipe($.vinylSourceStream(cfg.files.js.app.name))
+//
+//            .pipe($.if(PROD, $.streamify($.uglify({ mangle: false }))))
+//            .pipe($.if(PROD, $.rename({extname: '.min.js'})))
+//
+//            .pipe($.streamify($.size({ showFiles: true })))
+//            .pipe(gulp.dest(cfg.destDir))
+//
+//            .on('end', cb || callback)
+//            .on('error', $.util.log);
 
-        packager.external(bundle, cfg.bower);
-        bundle.bundle({debug: true, standalone: 'noscope'})
-            .pipe($.vinylSourceStream(cfg.files.js.app.name))
 
+
+        gulp.src(cfg.files.js.app.source)
+            .pipe(browserify({debug: true}))
+            .on('prebundle', function(bundle){
+                _.each(cfg.bower, function(file){
+                    bundle.external(file.name);
+                })
+            })
+
+            .pipe($.rename(cfg.files.js.app.name))
             .pipe($.if(PROD, $.streamify($.uglify({ mangle: false }))))
             .pipe($.if(PROD, $.rename({extname: '.min.js'})))
 

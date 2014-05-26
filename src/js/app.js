@@ -1,3 +1,8 @@
+$ = require('jquery');
+_ = require('underscore');
+Backbone = require('backbone');
+Backbone.$ = $;
+
 var MainView = require('./views/MainView');
 
 
