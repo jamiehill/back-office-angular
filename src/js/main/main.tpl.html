@@ -1,0 +1,103 @@
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-sm-3 col-md-2 sidebar">
+            <div id="tabstrip" kendo-tab-strip>
+                <ul>
+                    <li class="k-state-active">Search</li>
+                    <li>Advanced</li>
+                </ul>
+
+                <div>
+                    <select kendo-multi-select k-data-source='rootNodes' k-options="selectSportOptions" k-ng-model="selectedSports"></select>
+                </div>
+                <div>
+
+                </div>
+            </div>
+        </div>
+        <!--<div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main">-->
+        <div kendo-grid k-options="mainGridOptions" k-data-source='rootNodes'></div>
+         <!--</div>-->
+     </div>
+ </div>
+
+
+ <!--<div class="container-fluid">-->
+  <!--<div class="row">-->
+    <!--<div class="col-sm-3 col-md-2 sidebar">-->
+
+        <!--<div id="tabstrip" kendo-tab-strip>-->
+            <!--<ul>-->
+                <!--<li class="k-state-active">Search</li>-->
+                <!--<li>Advanced</li>-->
+            <!--</ul>-->
+
+            <!--<div>-->
+                <!--<select kendo-multi-select k-data-source='rootNodes' k-data-value-field="'id'" k-data-text-field="'name'">-->
+            <!--</div>-->
+            <!--<div>-->
+
+            <!--</div>-->
+        <!--</div>-->
+
+
+        <!--<style scoped>-->
+            <!--.demo-section {-->
+                <!--width: 350px;-->
+                <!--min-height: 140px;-->
+                <!--padding: 30px 30px 80px;-->
+            <!--}-->
+            <!--.demo-section h2 {-->
+                <!--font-weight: normal;-->
+            <!--}-->
+            <!--.demo-section label {-->
+                <!--display: inline-block;-->
+                <!--margin: 15px 0 5px 0;-->
+            <!--}-->
+            <!--.demo-section select {-->
+                <!--width: 350px;-->
+            <!--}-->
+            <!--#get {-->
+                <!--float: right;-->
+                <!--margin: 25px auto 0;-->
+            <!--}-->
+        <!--</style>-->
+
+        <!--<style scoped>-->
+            <!--#clientsDb {-->
+                <!--width: 952px;-->
+                <!--height: 396px;-->
+                <!--margin: 20px auto 0;-->
+                <!--padding: 51px 4px 0 4px;-->
+                <!--background: url('../../content/web/grid/clientsDb.png') no-repeat 0 0;-->
+            <!--}-->
+        <!--</style>-->
+
+    <!--</div>-->
+
+
+      <!--<!---->
+
+        <!--{-->
+           <!--"id" : 168769,-->
+           <!--"name" : "Federation Cup",-->
+           <!--"path" : "166661:166666:168230:168769",-->
+           <!--"type" : "NON_TRADING",-->
+           <!--"hasChildren" : true-->
+       <!--}-->
+
+       <!---->-->
+
+
+      <!--<div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main">-->
+
+          <!--<div kendo-grid-->
+               <!--k-data-source="rootNodes"-->
+               <!--k-columns="gridColumns"-->
+               <!--k-selectable="true"-->
+               <!--k-on-change="selected = data"></div>-->
+
+      <!--</div>-->
+
+  <!--</div>-->
+<!--</div>-->

@@ -1,20 +1,39 @@
-$ = require('jquery');
-_ = require('underscore');
-Backbone = require('backbone');
-Backbone.$ = $;
-
-var MainView = require('./views/MainView');
+'strict';
 
 
-// Creates a new Marionette application
-var App = Marionette.Application();
+require('../common/services/all');
+require('./login/login')
+require('./header/header')
+require('./main/main')
+require('./footer/footer')
 
-// Set up basic paths
-App.root = 'assets/javascripts/';
 
-// Adds any methods to be run after the app was initialized.
-App.addInitializer(function () {
-    App.show(new MainView());
-});
+angular.module('app', [
 
-App.start();
+	"ngRoute",
+    'ui.bootstrap',
+
+    'ats.services',
+
+    'app.header',
+    'app.main',
+    'app.footer',])
+
+    .constant('cfg', {
+        appname: 'Back Office',
+        endpoint: 'http://sportsbook-dev.amelco.co.uk/sb-backoffice/v1/api/',
+        ws: 'ws://sportsbook-dev.amelco.co.uk:9998/websocket'
+    })
+
+    .controller('AppCtrl', ['$rootScope', 'cfg', , function ($rootScope, cfg) {
+        $scope.appname = cfg.appname;
+        $scope.endpoint = cfg.endpoint;
+        $scope.ws = cfg.ws;
+    }])
+
+
+    .config(require('./config/http'))
+    .config(require('./config/routes'));
+
+
+

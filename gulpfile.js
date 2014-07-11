@@ -1,8 +1,31 @@
-var gulp = require('gulp'),
-    browserify = require('gulp-browserify'),
-    packager = require('./src/common/build/bower/packager')({debug:true}),
-    $ = require('./src/common/build/gulp/load-plugins')({ camelize: true, lazy: false }),
-    _ = require('lodash');
+/*
+
+ Gulpfile for building Back-Office application.
+
+ The application will build in two modes:  development or production.  In order
+ to specify 'production', the gulp cli property type should be set to 'production':
+
+        gulp --type production
+
+ Any other value, or indeed none specified at all, will be assumed to be 'development'.
+
+ Assumptions specific to the app this was pulled from:
+
+     1. Things there are only one of:
+
+     - Single JS entry point in ./src/app/app.js
+     - Single CSS file in ./src/styles/style.css (named whatever)
+     - Single HTML file in ./src/index.html (used as template)
+
+     2. Using Bootstrap, with glpyhicon fonts in ./vendor/fonts
+
+ */
+
+
+var time        = require('time-require')
+  , gulp        = require('gulp')
+  , packager    = require('./lib/packager')({debug: true})
+  , $           = require('gulp-load-plugins')({ camelize: true, lazy: false });
 
 
 /*
@@ -10,11 +33,10 @@ var gulp = require('gulp'),
  */
 
 
-var PROD = ($.util.env.type === 'production')
-    , DEV = (PROD === false)
-    , cfg = require('./build.config.js')
-    , json = require('./package.json')
-    , server = $.livereload();
+var PROD   = ($.util.env.type === 'production')
+  , DEV    = (PROD === false)
+  , cfg    = require('./build.config.js')
+  , server = $.livereload();
 
 
 /*
@@ -23,8 +45,8 @@ var PROD = ($.util.env.type === 'production')
 
 
 gulp.task('default', function () {
-    clean();
-    chain(images, styles, vendor2, scripts, index, watch, startExpress);
+  clean();
+  chain(images, styles, vendor, lint, scripts, templates, index, watch, startExpress);
 });
 
 
@@ -39,15 +61,15 @@ gulp.task('default', function () {
  * @param function cb async sequencial callback method
  */
 function clean(p, cb) {
-    var path = (p === undefined) ? "/*" : p,
-        files = $.path.join('./', cfg.destDir, path);
+  var path  = (p === undefined) ? "/*" : p,
+      files = $.path.join('./', cfg.destDir, path);
+    
+  $.util.log('Cleaning: ' + $.chalk.blue(files));
+  gulp.src(files, {read: false})
+    .pipe($.clean({force: true}))
 
-    $.util.log('Cleaning: ' + $.chalk.blue(files));
-    gulp.src(files, {read: false})
-        .pipe($.clean({force: true}))
-
-        .on('end', cb || callback)
-        .on('error', $.util.log);
+    .on('end', cb || callback)
+    .on('error', $.util.log);
 }
 
 
@@ -56,13 +78,13 @@ function clean(p, cb) {
  * @param function cb async sequencial callback method
  */
 function lint(cb) {
-    gulp.src(cfg.files.js.all)
+  gulp.src(cfg.files.js.all)
 
-        .pipe($.jshint())
-        .pipe($.jshint.reporter($.jshintStylish))
+    .pipe($.jshint())
+    .pipe($.jshint.reporter($.jshintStylish))
 
-        .on('end', cb || callback)
-        .on('error', $.util.log);
+    .on('end', cb || callback)
+    .on('error', $.util.log);
 }
 
 
@@ -71,18 +93,18 @@ function lint(cb) {
  * @param function cb async sequencial callback method
  */
 function images(cb) {
-    clean('img/*', function () {
-        $.util.log('Minifying images ---');
+  clean('img/*', function() {
+    $.util.log('Minifying images ---');
 
-        gulp.src(cfg.files.images.all)
-            .pipe($.imagemin())
+    gulp.src(cfg.files.images.all)
+      .pipe($.imagemin())
 
-            .pipe($.size({ showFiles: true }))
-            .pipe(gulp.dest(cfg.files.images.dest))
+      .pipe($.size({ showFiles: true }))
+      .pipe(gulp.dest(cfg.files.images.dest))
 
-            .on('end', cb || callback)
-            .on('error', $.util.log);
-    });
+      .on('end', cb || callback)
+      .on('error', $.util.log);
+  });
 }
 
 
@@ -91,26 +113,26 @@ function images(cb) {
  * @param function cb async sequencial callback method
  */
 function styles(cb) {
-    clean('style*.css', function () {
-        $.util.log('Rebuilding application styles ---');
+  clean('style*.css', function() {
+    $.util.log('Rebuilding application styles ---');
 
-        gulp.src(cfg.files.styles.all)
-            .pipe($.sass({
-                includePaths: cfg.scssDir,
-                outputStyle: 'expanded',
-                sourceComments: 'map'
-            }))
+    gulp.src(cfg.files.styles.all)
+      .pipe($.sass({
+          includePaths: cfg.scssDir,
+          outputStyle: 'expanded',
+          sourceComments: 'map'
+      }))
 
-            .pipe($.if(PROD, $.rename({extname: '.min.css'})))
-            .pipe($.if(PROD, $.csso()))
+      .pipe($.if(PROD, $.rename({extname: '.min.css'})))
+      .pipe($.if(PROD, $.csso()))
 
-            .pipe($.autoprefixer('last 2 versions', {map: false }))
-            .pipe($.size({ showFiles: true }))
-            .pipe(gulp.dest(cfg.destDir))
+      .pipe($.autoprefixer('last 2 versions', {map: false }))
+      .pipe($.size({ showFiles: true }))
+      .pipe(gulp.dest(cfg.destDir))
 
-            .on('end', cb || callback)
-            .on('error', $.util.log);
-    });
+      .on('end', cb || callback)
+      .on('error', $.util.log);
+  });
 }
 
 
@@ -121,98 +143,49 @@ function styles(cb) {
  */
 function vendor(cb) {
 
-    var jsfilter = $.filter('**/*.js'),
-        cssfilter = $.filter('**/*.css'),
-        assetsfilter = $.filter(['!**/*.js', '!**/*.css', '!**/*.scss']);
+  var jsfilter = $.filter('**/*.js'),
+      cssfilter = $.filter('**/*.css'),
+      assetsfilter = $.filter(['!**/*.js', '!**/*.css', '!**/*.scss']);
 
-    clean('vendor*.*', function () {
-        $.bowerFiles({ debugging: true })
-            .pipe($.plumber())
+  clean('vendor*.*', function() {
+    $.bowerFiles()
+      .pipe($.plumber())
 
-            // vendor js
-            .pipe(jsfilter)
-            .pipe($.concat(cfg.files.js.vendor.name))
-            .pipe($.uglify({ mangle: false }))
-            .pipe($.rename({extname: '.min.js'}))
+      // vendor js
+      .pipe(jsfilter)
+      .pipe($.concat(cfg.files.js.vendor.name))
+      .pipe($.streamify($.ngmin()))
+      .pipe($.uglify({ mangle: false }))
+      // .pipe($.rename({extname: '.min.js'}))
 
-            .pipe($.size({ showFiles: true }))
-            .pipe(gulp.dest(cfg.destDir))
-            .pipe(jsfilter.restore())
+      .pipe($.size({ showFiles: true }))  
+      .pipe(gulp.dest(cfg.destDir))
+      .pipe(jsfilter.restore())
 
-            // vendor css
-            .pipe(cssfilter)
-            .pipe($.csso())
-            .pipe($.concat(cfg.files.styles.vendor.name))
-            .pipe($.size({ showFiles: true }))
-            .pipe(gulp.dest(cfg.destDir))
-            .pipe(cssfilter.restore())
+      // vendor css
+      .pipe(cssfilter)
+      .pipe($.csso())
+      .pipe($.concat(cfg.files.styles.vendor.name))
+      .pipe($.size({ showFiles: true }))
+      .pipe(gulp.dest(cfg.destDir))
+      .pipe(cssfilter.restore())
 
-            // Fonts
-            .pipe($.rename(function (path) {
-                if (path.dirname.indexOf('fonts')) {
-                    path.dirname = '/fonts'
-                }
-            }))
-            .pipe(gulp.dest(cfg.destDir))
+      // Fonts
+      .pipe($.rename(function(path) {
+          if (path.dirname.indexOf('fonts')) {
+              path.dirname = '/fonts'
+          }
+      }))
+      .pipe(gulp.dest(cfg.destDir))
 
-            // vendor assets
-//      .pipe(assetsfilter)
-//      .pipe(gulp.dest(cfg.destDir))
-//      .pipe(assetsfilter.restore())
+      // vendor assets
+      // .pipe(assetsFilter)
+      // .pipe(gulp.dest(cfg.destDir))
+      // .pipe(assetsFilter.restore())
 
-            .on('end', cb || callback)
-            .on('error', $.util.log)
-    });
-}
-
-
-/**
- * Walks all bower_components' files to output
- * vendor.js, vendor.css and any associated fonts
- * @param function cb async sequencial callback method
- */
-function vendor2(cb) {
-    clean('vendor*.*', function () {
-//        var bundle = browserify(cfg.files.js.noop)
-//            .transform('partialify')
-//            .transform('browserify-shim');
-//
-//        packager.require(bundle, cfg.bower);
-//        bundle.bundle({debug: true, standalone:"backoffice"})
-//            .pipe($.vinylSourceStream(cfg.files.js.vendor.name))
-//
-//            .pipe($.if(PROD, $.streamify($.uglify({ mangle: false }))))
-//            .pipe($.if(PROD, $.rename({extname: '.min.js'})))
-//
-//            .pipe($.streamify($.size({ showFiles: true })))
-//            .pipe(gulp.dest(cfg.destDir))
-//
-//            .on('end', cb || callback)
-//            .on('error', $.util.log);
-
-
-
-        gulp.src(cfg.files.js.noop)
-            .pipe(browserify({debug: true}))
-            .on('prebundle', function(bundle){
-                _.each(json.browser, function(cfg){
-                    var expose = _.has(cfg, 'expose');
-                    if (expose) bundle.require(cfg.name, cfg.expose);
-                    else        bundle.require(cfg.name);
-
-                    $.util.log($.util.colors.green("Name :: "+cfg.name+" -"), $.util.colors.red("Expose - "+cfg.expose));
-                });
-            })
-            .pipe($.rename(cfg.files.js.vendor.name))
-            .pipe($.if(PROD, $.streamify($.uglify({ mangle: false }))))
-            .pipe($.if(PROD, $.rename({extname: '.min.js'})))
-
-            .pipe($.streamify($.size({ showFiles: true })))
-            .pipe(gulp.dest(cfg.destDir))
-
-            .on('end', cb || callback)
-            .on('error', $.util.log);
-    });
+      .on('end', cb || callback)
+      .on('error', $.util.log)
+  });
 }
 
 
@@ -222,44 +195,23 @@ function vendor2(cb) {
  * @return {[type]}      [description]
  */
 function scripts(cb) {
-    clean('app*.js', function () {
-//        var bundle = browserify(cfg.files.js.app.source)
-//            .transform('partialify')
-//            .transform('browserify-shim');
-//
-//        packager.external(bundle, cfg.bower);
-//        bundle.bundle({debug: true, standalone: 'noscope'})
-//            .pipe($.vinylSourceStream(cfg.files.js.app.name))
-//
-//            .pipe($.if(PROD, $.streamify($.uglify({ mangle: false }))))
-//            .pipe($.if(PROD, $.rename({extname: '.min.js'})))
-//
-//            .pipe($.streamify($.size({ showFiles: true })))
-//            .pipe(gulp.dest(cfg.destDir))
-//
-//            .on('end', cb || callback)
-//            .on('error', $.util.log);
+  clean('app*.js', function() {   
+    var bundle = $.browserify(cfg.files.js.app.source)
+      .transform('partialify');
+    
+    bundle.bundle({standalone: 'noscope'})
+      .pipe($.vinylSourceStream(cfg.files.js.app.name))
 
+      .pipe($.if(PROD, $.streamify($.ngmin())))
+      .pipe($.if(PROD, $.streamify($.uglify({ mangle: false }))))
+      .pipe($.if(PROD, $.rename({extname: '.min.js'})))
+      
+      .pipe($.streamify($.size({ showFiles: true })))
+      .pipe(gulp.dest(cfg.destDir))
 
-
-        gulp.src(cfg.files.js.app.source)
-            .pipe(browserify({debug: true}))
-            .on('prebundle', function(bundle){
-                _.each(cfg.bower, function(file){
-                    bundle.external(file.name);
-                })
-            })
-
-            .pipe($.rename(cfg.files.js.app.name))
-            .pipe($.if(PROD, $.streamify($.uglify({ mangle: false }))))
-            .pipe($.if(PROD, $.rename({extname: '.min.js'})))
-
-            .pipe($.streamify($.size({ showFiles: true })))
-            .pipe(gulp.dest(cfg.destDir))
-
-            .on('end', cb || callback)
-            .on('error', $.util.log);
-    });
+      .on('end', cb || callback)
+      .on('error', $.util.log);
+  });
 }
 
 
@@ -268,19 +220,20 @@ function scripts(cb) {
  * @param function cb async sequencial callback method
  */
 function scriptsNonBrowserify(cb) {
-    clean('vendor*.*', function () {
-        gulp.src(cfg.files.js.all)
-            .pipe($.concat(cfg.files.js.app.name))
+  clean('vendor*.*', function() {
+    gulp.src(cfg.files.js.all)
+      .pipe($.concat(cfg.files.js.app.name))
 
-            .pipe($.if(PROD, $.uglify({ mangle: false })))
-//      .pipe($.if(PROD, $.rename({extname: '.min.js'})))
+      .pipe($.if(PROD, $.streamify($.ngmin())))
+      .pipe($.if(PROD, $.uglify({ mangle: false })))
+      .pipe($.if(PROD, $.rename({extname: '.min.js'})))
 
-            .pipe($.size({ showFiles: true }))
-            .pipe(gulp.dest(cfg.destDir))
+      .pipe($.size({ showFiles: true }))
+      .pipe(gulp.dest(cfg.destDir))
 
-            .on('end', cb || callback)
-            .on('error', $.util.log);
-    });
+      .on('end', cb || callback)
+      .on('error', $.util.log);
+  });
 }
 
 
@@ -289,17 +242,17 @@ function scriptsNonBrowserify(cb) {
  * @param function cb async sequencial callback method
  */
 function templates(cb) {
-    clean('template*.js', function () {
-        gulp.src(cfg.files.tpl.all)
-            .pipe($.minifyHtml({ quotes: true }))
-            .pipe($.angularTemplatecache(cfg.files.tpl.name, cfg.files.tpl.opts))
+  clean('template*.js', function() {
+    gulp.src(cfg.files.tpl.all)
+      .pipe($.minifyHtml({ quotes: true }))
+      .pipe($.angularTemplatecache(cfg.files.tpl.name, cfg.files.tpl.opts))
 
-            .pipe($.size({ showFiles: true }))
-            .pipe(gulp.dest(cfg.destDir))
+      .pipe($.size({ showFiles: true }))
+      .pipe(gulp.dest(cfg.destDir))
 
-            .on('end', cb || callback)
-            .on('error', $.util.log);
-    });
+      .on('end', cb || callback)
+      .on('error', $.util.log);
+  });
 }
 
 
@@ -308,16 +261,16 @@ function templates(cb) {
  * @param function cb async sequencial callback method
  */
 function index(cb) {
-    gulp.src(cfg.files.html.source)
-        .pipe(inject(cfg.files.styles.vendor.output, cfg.files.styles.vendor.tag))
-        .pipe(inject(cfg.files.styles.app.output, cfg.files.styles.app.tag))
-        .pipe(inject(cfg.files.js.app.output, cfg.files.js.app.tag))
-        .pipe(inject(cfg.files.js.vendor.output, cfg.files.js.vendor.tag))
-        .pipe(inject(cfg.files.js.template.output, cfg.files.js.template.tag))
-        .pipe(gulp.dest(cfg.destDir))
+  gulp.src(cfg.files.html.source)
+    .pipe(inject(cfg.files.styles.vendor.output, cfg.files.styles.vendor.tag))
+    .pipe(inject(cfg.files.styles.app.output, cfg.files.styles.app.tag))
+    .pipe(inject(cfg.files.js.app.output, cfg.files.js.app.tag))
+    .pipe(inject(cfg.files.js.vendor.output, cfg.files.js.vendor.tag))
+    .pipe(inject(cfg.files.js.template.output, cfg.files.js.template.tag))
+    .pipe(gulp.dest(cfg.destDir))
 
-        .on('end', cb || callback)
-        .on('error', $.util.log);
+    .on('end', cb || callback)
+    .on('error', $.util.log); 
 }
 
 
@@ -326,111 +279,132 @@ function index(cb) {
  * @param function cb async sequencial callback method
  */
 function watch(cb) {
-    gulp.watch(cfg.files.js.output, function (event) {
-        chainReload([index], event.path);
-    });
+  gulp.watch(cfg.files.js.output, function(event){
+    chainReload([index], event.path);
+  });
 
-    gulp.watch(cfg.files.js.vendor.output, function (event) {
-        chainReload([index], event.path);
-    });
+  gulp.watch(cfg.files.js.vendor.output, function(event){
+    chainReload([index], event.path);
+  });
 
-    gulp.watch(cfg.files.html.output, function (event) {
-        // $.util.log($.chalk.bgMagenta(' Reload: ' + event.path + " ------- "));
-        // server.changed(event.path);
-    });
+  gulp.watch(cfg.files.html.output, function(event){
+    // $.util.log($.chalk.bgMagenta(' Reload: ' + event.path + " ------- "));
+    // server.changed(event.path);
+  });
 
-    gulp.watch(cfg.files.styles.all, function (event) {
-        chainReload([styles, index], event.path);
-    });
+  gulp.watch(cfg.files.styles.all, function(event){
+    chainReload([styles, index], event.path);
+  });
 
-    gulp.watch(cfg.files.images.all, function (event) {
-        chainReload([images], event.path);
-    });
+  gulp.watch(cfg.files.images.all, function(event){
+    chainReload([images], event.path);
+  });
 
-    cb();
+  cb();
 }
 
 
-/*
+ /*
  Server -----------------------------------
  */
 
 
 function startExpress(cb) {
-    var app = $.connect()
-        .use($.connectLivereload({ port: 35729 }))
-        .use($.connect.static(cfg.destDir))
-        .use($.connect.directory(cfg.destDir));
+  var app = $.connect()
+    .use($.connectLivereload({ port: 35729 }))
+    .use($.connect.static(cfg.destDir))
+    .use($.connect.directory(cfg.destDir));
 
-    gulp.server = $.http.createServer(app)
-        .listen(9000)
-        .on('listening', function () {
-            $.util.log($.chalk.yellow('Connect listening on port:', 9000));
-        })
+  gulp.server = $.http.createServer(app)
+    .listen(9000)
+    .on('listening', function() {
+      $.util.log($.chalk.yellow('Connect listening on port:', 9000));
+    })
 
-    $.opn('http://localhost:9000');
-    cb();
+  $.opn('http://localhost:9000');
+  cb();
 
 
-    // var app = $.express();
-    // app.use($.livereload(cfg.server.opts.livereload));
-    // app.use($.express.static(cfg.destDir));
-    // app.listen(cfg.server.opts.port, function(){
-    //   $.util.log($.chalk.yellow('Express listening on port:', cfg.server.opts.port));
-    // });
-    // cb();
+  // var app = $.express();
+  // app.use($.livereload(cfg.server.opts.livereload));
+  // app.use($.express.static(cfg.destDir));
+  // app.listen(cfg.server.opts.port, function(){
+  //   $.util.log($.chalk.yellow('Express listening on port:', cfg.server.opts.port));
+  // });
+  // cb();
 }
 
 
 function startLiveReload(cb) {
-    // $.tingLr.listen(cfg.server.opts.livereload.port, function(err) {
-    //   if (err) return $.util.log($.util.colors.red(err));
-    //   $.util.log($.chalk.yellow('Livereload heard something!'));
-    // });
-    cb();
+  // $.tingLr.listen(cfg.server.opts.livereload.port, function(err) {
+  //   if (err) return $.util.log($.util.colors.red(err));
+  //   $.util.log($.chalk.yellow('Livereload heard something!'));
+  // });
+  cb();
 }
 
 function inject(glob, tag) {
-    $.util.log('Injecting: ' + $.chalk.blue(glob + ' - ' + tag));
+  $.util.log('Injecting: ' + $.chalk.blue(glob + ' - ' + tag));
 
-    return $.inject(gulp.src(glob, {read: false}), {
-        starttag: '<!-- inject:' + tag + ' -->',
-        ignorePath: '/public/',
-        addRootSlash: false
-    });
+  return $.inject(gulp.src(glob, {read: false}), {
+    starttag: '<!-- inject:'+tag+' -->',
+    ignorePath:'/public/',
+    addRootSlash: false
+  });
 }
 
 
-function open(cb) {
-    gulp.src(cfg.files.html.output)
-        .pipe($.open("<%file.path%>", {url: cfg.server.url}));
-    cb();
+function open(cb){
+  gulp.src(cfg.files.html.output)
+    .pipe($.open("<%file.path%>",{url: cfg.server.url}));
+  cb();
 }
 
 
 function chain() {
-    var tasks = Array.prototype.slice.call(arguments);
-    $.async.eachSeries(tasks, invoke);
+  var tasks = Array.prototype.slice.call(arguments);
+  $.async.eachSeries(tasks, invoke);
 }
 
 
 function chainReload() {
-    var args = Array.prototype.slice.call(arguments)
-    $.async.eachSeries(args[0], invoke, function () {
-        $.util.log($.chalk.bgMagenta(' Reload: ' + args[1] + " ------- "));
-        server.changed(args[1]);
-    });
+  var args = Array.prototype.slice.call(arguments)
+  $.async.eachSeries(args[0], invoke, function(){
+    $.util.log($.chalk.bgMagenta(' Reload: ' + args[1] + " ------- "));
+    server.changed(args[1]);
+  });
 }
 
 
 function invoke(func, cb) {
-    var name = func.name.charAt(0).toUpperCase() + func.name.slice(1);
-    $.util.log('Invoke: ' + $.chalk.red(name + ' -------------------'));
+  var name = func.name.charAt(0).toUpperCase() + func.name.slice(1);
+  $.util.log('Invoke: ' + $.chalk.red(name + ' -------------------'));
 
-    func.apply(this, [cb || callback]);
+  func.apply(this, [cb || callback]);
 }
 
 
 function callback() {
-    $.util.log($.chalk.green('callback'));
+  $.util.log($.chalk.green('callback'));
+}
+
+function cssResolve(file, cb) {
+  var bowerDir = packager.getInstallDirectory(),
+      relativePath = $.path.dirname($.path.relative(bowerDir, file.path)),
+
+      contents = file.contents.toString();
+      contents = contents.replace(/url\([^)]*\)/g, function(inMatch){
+        // find the url path, ignore quotes in url string
+        var matches = /url\s*\(\s*(('([^']*)')|("([^"]*)")|([^'"]*))\s*\)/.exec(inMatch);
+        var urlPath = matches[3] || matches[5] || matches[6];
+
+        // Don't modify data and http(s) urls
+        if (/^data:/.test(url) || /^http(:?s)?:/.test(url)) {
+          return "url(" + url + ")";
+        }
+        return "url(" + $.path.join($.path.relative(settings.build.bower, settings.build.app), settings.build.bower, relativePath, url) + ")";
+      });
+
+  file.contents = new Buffer(contents);
+  cb(null, file);
 }

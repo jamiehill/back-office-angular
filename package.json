@@ -2,7 +2,7 @@
   "name": "back-office",
   "version": "0.0.0",
   "description": "Ats Back Office",
-  "main": "src/js/app.js",
+  "main": "src/js/js.js",
   "scripts": {
     "clean": "rm -rf node_modules && npm cache clean",
     "install-app": "npm run install-bower && npm run install-gulp && npm run install-deps && npm run install-compass",
@@ -16,9 +16,7 @@
   "license": "MIT",
   "devDependencies": {
     "async": "^0.8.0",
-    "bower-resolve": "^1.1.0",
     "browserify": "^4.1.2",
-    "browserify-shim": "^3.5.0",
     "chai": "^1.9.1",
     "chalk": "^0.4.0",
     "connect": "^2.15.0",
@@ -26,16 +24,12 @@
     "deamdify": "^0.1.1",
     "debowerify": "^0.7.0",
     "express": "^4.1.1",
-    "findup-sync": "^0.1.3",
-    "globule": "^0.2.0",
     "gulp": "^3.6.2",
+    "gulp-angular-templatecache": "^1.1.3",
     "gulp-autoprefixer": "0.0.7",
     "gulp-bower": "0.0.4",
-    "gulp-bower-files": "^0.2.3",
-    "gulp-bower-src": "0.0.1",
-    "gulp-browserify": "^0.5.0",
+    "gulp-bower-files": "^0.2.2",
     "gulp-clean": "^0.2.4",
-    "gulp-commonjs": "^0.1.0",
     "gulp-compass": "^1.1.8",
     "gulp-concat": "^2.2.0",
     "gulp-csso": "^0.2.8",
@@ -48,6 +42,8 @@
     "gulp-livereload": "^1.3.1",
     "gulp-load-plugins": "^0.5.0",
     "gulp-minify-html": "^0.1.3",
+    "gulp-ngmin": "^0.2.0",
+    "gulp-ngtemplate": "^0.2.1",
     "gulp-open": "^0.2.8",
     "gulp-plumber": "^0.6.1",
     "gulp-rename": "^1.2.0",
@@ -57,11 +53,9 @@
     "gulp-sass": "^0.7.1",
     "gulp-size": "^0.3.0",
     "gulp-streamify": "0.0.5",
-    "gulp-tap": "^0.1.1",
     "gulp-uglify": "^0.2.1",
     "gulp-util": "^2.2.14",
     "gulp-watch": "^0.6.4",
-    "gulp-wrap-commonjs": "^0.1.11",
     "http": "0.0.0",
     "jshint-stylish": "^0.2.0",
     "karma": "^0.12.14",
@@ -88,41 +82,24 @@
     "rimraf": "^2.2.6",
     "sinon": "^1.9.1",
     "sinon-chai": "^2.5.0",
+    "time-require": "^0.1.2",
     "tiny-lr": "0.0.5",
     "vinyl-source-stream": "^0.1.1",
     "watchify": "^0.8.2"
   },
-  "browser": {
-    "jquery": "./bower_components/jquery/dist/jquery.min.js",
-    "jquery-pubsub": "./bower_components/jquery-pubsub/jquery.pubsub.js",
-    "underscore": "./bower_components/underscore/underscore.js",
-    "backbone": "./bower_components/backbone/backbone.js",
-    "marionette": "./bower_components/marionette/lib/backbone.marionette.js",
-    "backbone.babysitter": "./bower_components/backbone.babysitter/lib/backbone.babysitter.js",
-    "backbone.wreqr": "./bower_components/backbone.wreqr/lib/backbone.wreqr.js",
-    "w2ui": "./bower_components/w2ui/w2ui-1.3.min.js"
-  },
-  "browserify-shim": {
-    "jquery": "$",
-    "underscore": "global:_",
-    "backbone": {
-      "exports": "Backbone",
-      "depends": [
-        "jquery:$",
-        "underscore:_"
-      ]
-    },
-    "marionette": {
-      "exports": "Marionette",
-      "depends": [
-        "backbone:Backbone"
-      ]
-    }
-  },
   "browserify": {
     "transform": [
-      "partialify",
-      "browserify-shim"
+      "deamdify",
+      "partialify"
     ]
+  },
+  "watchify": {
+    "transform": [
+      "deamdify",
+      "partialify"
+    ]
+  },
+  "jshintConfig": {
+    "asi": false
   }
 }

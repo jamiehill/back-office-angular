@@ -20,15 +20,7 @@ module.exports = {
     commonDir: './src/common',
     scssDir: './src/scss',
 
-    bower: [
-        {name:'jquery', expose:'jquery'},
-        {name:'jquery-pubsub'},
-        {name:'underscore', expose:'underscore'},
-        {name:'backbone', expose:'backbone'},
-        {name:'marionette', expose:'marionette'},
-        {name:'w2ui'}
-    ],
-
+    bowerComponents: [],
     browserify: {
         entries:"./src/js/app.js",
         debug: true,
@@ -61,7 +53,7 @@ module.exports = {
                 tag: 'template:js'
             },
 
-            noop: './src/common/build/bower/noop.js',
+            noop: './lib/noop.js',
             all: [ './src/**/*.js', './src/**/*.js', '!./src/**/*.spec.js' ],
             output: './public/**/*.js'
         },
